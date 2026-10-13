@@ -6,8 +6,23 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pk.rehnuma.app.config.AppConfig
+import pk.rehnuma.app.overlay.DebugBoxesOverlay
+import pk.rehnuma.app.screen.ScreenReader
+import pk.rehnuma.app.screen.ScreenSnapshot
+import pk.rehnuma.app.screen.SnapshotSaver
 
 /**
  * Entry point of the Kotlin core (SPEC 5.1). Reads the screen only while a guidance session is
@@ -15,18 +30,33 @@ import pk.rehnuma.app.config.AppConfig
  */
 class RehnumaAccessibilityService : AccessibilityService() {
 
+    private lateinit var scope: CoroutineScope
     private lateinit var notification: SessionNotification
+    private lateinit var reader: ScreenReader
+    private lateinit var debugBoxes: DebugBoxesOverlay
+    private var config = AppConfig()
     private var bubbleVisible = false
     private var sessionActive = false
+    private var debugRefresh: Job? = null
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val readDispatcher = Dispatchers.Default.limitedParallelism(1)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        scope = MainScope()
+        config = AppConfig.load(this)
         notification = SessionNotification(this) { hideBubble() }
+        reader = ScreenReader(this)
+        debugBoxes = DebugBoxesOverlay(this)
         instance = this
+        if (config.debugBoxes) setDebugBoxes(true)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (!sessionActive || event == null) return
+        // Rule 4: ignore everything unless the user started a session (or turned on the debug overlay).
+        if (event == null || !(sessionActive || debugBoxes.isShowing)) return
+        if (debugBoxes.isShowing) scheduleDebugRefresh()
     }
 
     override fun onInterrupt() {
@@ -47,8 +77,68 @@ class RehnumaAccessibilityService : AccessibilityService() {
         if (instance === this) instance = null
         sessionActive = false
         bubbleVisible = false
+        if (::debugBoxes.isInitialized) debugBoxes.hide()
         if (::notification.isInitialized) notification.release()
+        if (::scope.isInitialized) scope.cancel()
     }
+
+    /** Reads the current screen off the main thread. */
+    suspend fun readScreen(): ScreenSnapshot? = withContext(readDispatcher) {
+        try {
+            reader.read()
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "screen read failed", e)
+            null
+        }
+    }
+
+    // ---- Debug tools (SPEC 11) ----
+
+    fun setDebugBoxes(enabled: Boolean) {
+        config = config.copy(debugBoxes = enabled)
+        if (enabled) {
+            debugBoxes.show()
+            scheduleDebugRefresh(0)
+        } else {
+            debugRefresh?.cancel()
+            debugBoxes.update(null)
+            debugBoxes.hide()
+        }
+    }
+
+    private fun scheduleDebugRefresh(delayMs: Long = 300) {
+        debugRefresh?.cancel()
+        debugRefresh = scope.launch {
+            delay(delayMs)
+            debugBoxes.update(readScreen())
+        }
+    }
+
+    fun saveSnapshotAfter(delayMs: Long) {
+        scope.launch {
+            toast("Snapshot ${delayMs / 1000}s mein")
+            delay(delayMs)
+            saveSnapshotNow()
+        }
+    }
+
+    suspend fun saveSnapshotNow() {
+        val snapshot = readScreen()
+        if (snapshot == null) {
+            toast("Koi screen nahi mili")
+            return
+        }
+        val result = withContext(Dispatchers.IO) { SnapshotSaver.save(this@RehnumaAccessibilityService, snapshot) }
+        when (result) {
+            is SnapshotSaver.Result.Sensitive -> toast("Yeh screen save nahi hogi (PIN/password)")
+            is SnapshotSaver.Result.Saved -> {
+                toast("Saved: ${result.file.name}")
+                SnapshotSaver.share(this, result.file)
+            }
+        }
+    }
+
+    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
 
     // ---- Called from the Flutter bridge (main thread) ----
 
@@ -69,15 +159,16 @@ class RehnumaAccessibilityService : AccessibilityService() {
         if (!bubbleVisible) showBubble()
     }
 
-    fun onConfigChanged(config: AppConfig) {}
-
-    fun setDebugBoxes(enabled: Boolean) {}
-
-    fun saveSnapshotAfter(delayMs: Long) {}
+    fun onConfigChanged(newConfig: AppConfig) {
+        if (newConfig.debugBoxes != debugBoxes.isShowing) setDebugBoxes(newConfig.debugBoxes)
+        config = newConfig
+    }
 
     fun metricsSummary(): Map<String, Any?> = metricsSummary(this)
 
     companion object {
+        private const val TAG = "Rehnuma"
+
         @Volatile
         var instance: RehnumaAccessibilityService? = null
             private set
