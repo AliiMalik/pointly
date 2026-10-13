@@ -76,6 +76,7 @@ class GuidanceSessionTest {
 
     private class FakeUi : SessionUi {
         val points = mutableListOf<Pair<PointerTarget, String?>>()
+        val hands = mutableListOf<Boolean>()
         val captions = mutableListOf<String?>()
         val states = mutableListOf<SessionState>()
         var bubble = BubbleState.IDLE
@@ -89,6 +90,7 @@ class GuidanceSessionTest {
 
         override fun point(target: PointerTarget, caption: String?, withHand: Boolean, onArrived: () -> Unit) {
             points += target to caption
+            hands += withHand
             onArrived()
         }
 
@@ -120,19 +122,38 @@ class GuidanceSessionTest {
         }
     }
 
+    private class FakeObserver : SessionObserver {
+        val steps = mutableListOf<StepMetrics>()
+        val pauses = mutableListOf<String>()
+        override fun onStep(m: StepMetrics) {
+            steps += m
+        }
+
+        override fun onSensitivePause(sessionId: String, packageName: String) {
+            pauses += packageName
+        }
+    }
+
     private class Rig(
         val session: GuidanceSession,
         val screen: FakeScreen,
         val planner: FakePlanner,
         val ui: FakeUi,
         val voice: FakeVoice,
+        val observer: FakeObserver,
     )
 
-    private fun TestScope.rig(start: ScreenSnapshot?, config: AppConfig = AppConfig()): Rig {
+    private fun TestScope.rig(
+        start: ScreenSnapshot?,
+        config: AppConfig = AppConfig(),
+        learning: LearningStore = LearningStore(null) { 0 },
+        cache: PlanCache = PlanCache(null),
+    ): Rig {
         val screen = FakeScreen(start)
         val planner = FakePlanner()
         val ui = FakeUi()
         val voice = FakeVoice()
+        val observer = FakeObserver()
         var n = 0
         val session = GuidanceSession(
             scope = backgroundScope,
@@ -143,9 +164,12 @@ class GuidanceSessionTest {
             config = { config },
             ownPackage = own,
             clock = { testScheduler.currentTime },
+            learning = learning,
+            cache = cache,
+            observer = observer,
             newSessionId = { "s${++n}" },
         )
-        return Rig(session, screen, planner, ui, voice)
+        return Rig(session, screen, planner, ui, voice, observer)
     }
 
     private fun tap(id: Int, say: String = "Isay dabayein", key: String = "test_goal") =
@@ -516,5 +540,153 @@ class GuidanceSessionTest {
         assertEquals(2, r.planner.requests.size)
         assertEquals("WhatsApp", r.planner.requests[1].goalText)
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+    }
+
+    // ---------------------------------------------------------------- fading and cache (Phase 6)
+
+    private val displayPage = snap(
+        el(1, text = "Display size & text", viewId = "title", clickable = true, bounds = listOf(0, 1000, 1080, 1130)),
+        pkg = "com.android.settings", windowId = 40,
+    )
+    private val textPage = snap(el(1, text = "Font size", clickable = true), pkg = "com.android.settings", windowId = 41)
+
+    /** One full font-size session: tap on the Display page, then done on the text page. */
+    private fun TestScope.fontSizeRun(r: Rig) {
+        r.screen.current = displayPage
+        r.planner.then(tap(1, "Display size and text wala option dabayein, phir font", "settings_font_size"))
+        r.planner.then(plan("done", key = "settings_font_size"))
+        r.session.submitGoal("Phone ke likhai bari karni hai")
+        runCurrent()
+        r.screen.current = textPage
+        r.session.onEvent(click("com.android.settings", listOf(0, 1000, 1080, 1130)))
+        settle()
+        advanceTimeBy(GuidanceSession.END_MAX_MS + 100)
+        runCurrent()
+        assertEquals(SessionState.IDLE, r.session.state)
+    }
+
+    @Test fun helpFadesOverRepeatedRuns() = runTest {
+        val r = rig(displayPage)
+        val levels = mutableListOf<String>()
+        repeat(5) {
+            fontSizeRun(r)
+            levels += r.observer.steps.last { it.action == "tap" }.guidanceLevel
+        }
+        // SPEC 9.1 / A5: runs 1-2 FULL, 3-4 HINT, 5+ SILENT.
+        assertEquals(listOf("FULL", "FULL", "HINT", "HINT", "SILENT"), levels)
+        assertTrue(r.voice.said.contains(Phrase.YOUR_TURN.roman))
+        // HINT runs spoke only the first clause.
+        assertTrue(r.voice.said.contains("Display size and text wala option dabayein"))
+    }
+
+    @Test fun hintShowsHandOnlyAfterHesitation() = runTest {
+        val learning = LearningStore(null) { 0 }
+        val key = LearningStore.key("settings_font_size", "com.android.settings", "id:title")
+        repeat(2) { learning.recordSuccess(key) }
+        val r = rig(displayPage, learning = learning)
+        r.planner.then(tap(1, "Display wala option dabayein", "settings_font_size"))
+        r.session.submitGoal("font")
+        runCurrent()
+        assertEquals(listOf(false), r.ui.hands)
+        advanceTimeBy(GuidanceSession.HINT_REVEAL_MS + 100)
+        runCurrent()
+        assertEquals(listOf(false, true), r.ui.hands)
+    }
+
+    @Test fun demoModeAlwaysFull() = runTest {
+        val learning = LearningStore(null) { 0 }
+        repeat(6) { learning.recordSuccess(LearningStore.key("settings_font_size", "com.android.settings", "id:title")) }
+        val r = rig(displayPage, AppConfig(demoMode = true), learning)
+        r.planner.then(tap(1, "Display", "settings_font_size"))
+        r.session.submitGoal("font")
+        runCurrent()
+        assertEquals(listOf(true), r.ui.hands)
+    }
+
+    @Test fun repeatedTaskUsesPlanCacheAfterFirstStep() = runTest {
+        val r = rig(launcher, AppConfig(demoMode = true))
+        // Run 1: launcher -> chats -> done, all from the planner.
+        r.planner.then(tap(1, "WhatsApp dabayein", "whatsapp_send_photo"))
+        r.planner.then(tap(2, "Sara dabayein", "whatsapp_send_photo"))
+        r.planner.then(plan("done", key = "whatsapp_send_photo"))
+        r.session.submitGoal("Sara ko photo")
+        runCurrent()
+        r.screen.current = chats
+        r.session.onEvent(click("com.android.launcher", listOf(100, 1800, 300, 2000)))
+        settle()
+        r.screen.current = saraChat
+        r.session.onEvent(click("com.whatsapp", listOf(0, 420, 1080, 560)))
+        settle()
+        advanceTimeBy(GuidanceSession.END_MAX_MS + 100)
+        runCurrent()
+        assertEquals(3, r.planner.requests.size)
+
+        // Run 2: step 1 still asks the planner (for goal_key); the chats step comes from the cache (A10).
+        r.screen.current = launcher
+        r.planner.then(tap(1, "WhatsApp dabayein", "whatsapp_send_photo"))
+        r.planner.then(plan("done", key = "whatsapp_send_photo"))
+        r.session.submitGoal("Sara ko photo")
+        runCurrent()
+        r.screen.current = chats
+        r.session.onEvent(click("com.android.launcher", listOf(100, 1800, 300, 2000)))
+        settle()
+        assertEquals(4, r.planner.requests.size) // nothing was sent for the chats screen
+        assertEquals(PointerTarget.Element(listOf(0, 420, 1080, 560)), r.ui.points.last().first)
+        r.screen.current = saraChat
+        r.session.onEvent(click("com.whatsapp", listOf(0, 420, 1080, 560)))
+        settle()
+        assertTrue(r.observer.steps.any { it.fromCache && it.action == "tap" && it.outcome == "done" })
+        assertEquals(5, r.planner.requests.size)
+    }
+
+    @Test fun pinSheetOnSameWindowHidesPointer() = runTest {
+        val home = snap(el(1, text = "Mobile Load", clickable = true, bounds = listOf(0, 500, 1080, 600)), pkg = "com.wallet", windowId = 31)
+        val keys = (0..9).map { d -> el(10 + d, text = d.toString(), clickable = true, bounds = listOf(d * 100, 2000, d * 100 + 90, 2090)) }
+        val withSheet = snap(
+            el(1, text = "Mobile Load", clickable = true, bounds = listOf(0, 500, 1080, 600)),
+            *keys.toTypedArray(),
+            pkg = "com.wallet", windowId = 31,
+        )
+        val r = rig(home)
+        r.planner.then(tap(1))
+        r.session.submitGoal("Mobile load")
+        runCurrent()
+        r.screen.current = withSheet
+        r.session.onEvent(ScreenEvent(ScreenEvent.Type.WINDOW_CONTENT, "com.wallet"))
+        settle()
+        assertEquals(SessionState.SENSITIVE_PAUSE, r.session.state)
+        assertEquals(listOf("com.wallet"), r.observer.pauses)
+        assertEquals(1, r.planner.requests.size)
+    }
+
+    @Test fun metricsLineHasTimingsAndNoText() = runTest {
+        val r = rig(launcher)
+        r.planner.then(tap(1, "WhatsApp dabayein", "whatsapp_send_photo"))
+        r.planner.then(plan("done", key = "whatsapp_send_photo"))
+        r.session.submitGoal("WhatsApp")
+        runCurrent()
+        advanceTimeBy(1200)
+        r.screen.current = chats
+        r.session.onEvent(click("com.android.launcher", listOf(100, 1800, 300, 2000)))
+        settle()
+        val tapLine = r.observer.steps.first { it.action == "tap" }
+        assertEquals("done", tapLine.outcome)
+        assertEquals(1, tapLine.step)
+        assertEquals("whatsapp_send_photo", tapLine.goalKey)
+        assertEquals(900L, tapLine.plannerMs)
+        assertTrue(tapLine.timeToUserTapMs!! >= 1200)
+        assertEquals("FULL", tapLine.guidanceLevel)
+        assertFalse(tapLine.fromCache)
+        assertEquals("completed", r.observer.steps.last().outcome)
+    }
+
+    @Test fun cancelReportsUnfinishedStep() = runTest {
+        val r = rig(launcher)
+        r.planner.then(tap(1))
+        r.session.submitGoal("WhatsApp")
+        runCurrent()
+        r.session.cancel()
+        assertEquals("cancelled", r.observer.steps.single().outcome)
+        assertNull(r.observer.steps.single().timeToUserTapMs)
     }
 }

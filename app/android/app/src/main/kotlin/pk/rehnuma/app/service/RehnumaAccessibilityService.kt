@@ -11,6 +11,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +36,9 @@ import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.screen.SnapshotSaver
 import pk.rehnuma.app.screen.recycleCompat
 import pk.rehnuma.app.session.GuidanceSession
+import pk.rehnuma.app.session.LearningStore
+import pk.rehnuma.app.session.PlanCache
+import pk.rehnuma.app.session.SessionObserver
 import pk.rehnuma.app.session.ScreenEvent
 import pk.rehnuma.app.session.SessionState
 import pk.rehnuma.app.session.SessionUi
@@ -60,6 +64,8 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var session: GuidanceSession
     private lateinit var speechOut: SpeechOutput
     private lateinit var speechIn: SpeechInput
+    private lateinit var learning: LearningStore
+    private lateinit var planCache: PlanCache
     private var config = AppConfig()
     private var bubbleVisible = false
     private var debugRefresh: Job? = null
@@ -80,6 +86,8 @@ class RehnumaAccessibilityService : AccessibilityService() {
         planner = PlannerClient({ config })
         speechOut = SpeechOutput(this, { config }, planner, scope)
         speechIn = SpeechInput(this, { config }, planner, scope)
+        learning = LearningStore(File(filesDir, LEARNING_FILE)) { System.currentTimeMillis() }
+        planCache = PlanCache(File(filesDir, PLAN_CACHE_FILE))
         session = GuidanceSession(
             scope = scope,
             screen = { readScreen() },
@@ -89,7 +97,11 @@ class RehnumaAccessibilityService : AccessibilityService() {
             config = { config },
             ownPackage = packageName,
             clock = { SystemClock.uptimeMillis() },
+            learning = learning,
+            cache = planCache,
+            observer = sessionObserver,
         )
+        speechOut.onSpeakStart = { session.onSpeechStarted() }
         instance = this
         Log.i(TAG, "service connected")
         if (config.debugBoxes) setDebugBoxes(true)
@@ -193,9 +205,10 @@ class RehnumaAccessibilityService : AccessibilityService() {
         }
 
         override fun point(target: PointerTarget, caption: String?, withHand: Boolean, onArrived: () -> Unit) {
+            // HINT/SILENT levels start without hand or ring; both appear if the user hesitates.
             pointer.show(
                 target, caption, urduScript = config.caption == AppConfig.CAPTION_URDU,
-                from = bubble.bubbleCenterOnScreen(), withHand = withHand, onArrived = onArrived,
+                from = bubble.bubbleCenterOnScreen(), withHand = withHand, withRing = withHand, onArrived = onArrived,
             )
         }
 
@@ -210,6 +223,12 @@ class RehnumaAccessibilityService : AccessibilityService() {
         override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) {
             Log.d(TAG, "state $state step=$step${error?.let { " error=$it" } ?: ""}") // never screen text
             RehnumaEvents.emit(state.name, goalText, step, captionRoman, error)
+        }
+    }
+
+    private val sessionObserver = object : SessionObserver {
+        override fun onSensitivePause(sessionId: String, packageName: String) {
+            Log.i(TAG, "sensitive_pause $packageName") // package only (SPEC 5.4)
         }
     }
 
@@ -382,6 +401,8 @@ class RehnumaAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "Rehnuma"
         private const val PANEL_CLOSE_MS = 400L
+        const val LEARNING_FILE = "learning.json"
+        const val PLAN_CACHE_FILE = "plan_cache.json"
         private val TAP_TO_TALK_STATES = setOf(SessionState.IDLE, SessionState.ASKING, SessionState.COMPLETED)
 
         @Volatile
@@ -402,6 +423,9 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
         fun exportMetrics(activity: Activity): String? = null
 
-        fun resetLearning(context: Context) {}
+        fun resetLearning(context: Context) {
+            val live = instance
+            if (live != null && live::learning.isInitialized) live.learning.reset() else File(context.filesDir, LEARNING_FILE).delete()
+        }
     }
 }

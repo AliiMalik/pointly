@@ -21,10 +21,35 @@ import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.voice.Phrase
 import java.util.UUID
 
+/** One line of `metrics.jsonl` (SPEC 5.14). Never contains screen text. */
+data class StepMetrics(
+    val sessionId: String,
+    val step: Int,
+    val goalKey: String?,
+    val packageName: String,
+    val action: String,
+    val readMs: Long,
+    val plannerMs: Long?,
+    val ttsStartMs: Long?,
+    val timeToUserTapMs: Long?,
+    val settleToPointerMs: Long?,
+    val outcome: String,
+    val fromCache: Boolean,
+    val guidanceLevel: String,
+)
+
+/** Metrics and privacy-safe events coming out of the session (SPEC 5.4, 5.14). */
+interface SessionObserver {
+    fun onStep(m: StepMetrics) {}
+
+    /** Only the package is reported for a sensitive screen (SPEC 5.4). */
+    fun onSensitivePause(sessionId: String, packageName: String) {}
+}
+
 /**
- * The guidance loop (SPEC 5.5): read the screen, ask the planner for one step, point, wait for the
- * user's own tap, verify, repeat. Runs on one thread (the main thread in the app).
- * It never acts for the user: it only shows, speaks and waits.
+ * The guidance loop (SPEC 5.5): read the screen, ask the planner (or the plan cache) for one step,
+ * point, wait for the user's own tap, verify, repeat. Help fades as steps are learned (SPEC 9).
+ * Runs on one thread (the main thread in the app). It never acts for the user.
  */
 class GuidanceSession(
     private val scope: CoroutineScope,
@@ -35,6 +60,9 @@ class GuidanceSession(
     private val config: () -> AppConfig,
     private val ownPackage: String,
     private val clock: () -> Long,
+    private val learning: LearningStore = LearningStore(null, clock),
+    private val cache: PlanCache = PlanCache(null),
+    private val observer: SessionObserver = object : SessionObserver {},
     private val newSessionId: () -> String = { UUID.randomUUID().toString() },
 ) {
     var state = SessionState.IDLE
@@ -54,33 +82,70 @@ class GuidanceSession(
 
     private var sessionId = ""
     private val _history = ArrayList<HistoryItem>()
+    private val finishedSteps = ArrayList<PlanCache.Step>()
     private val settle = SettleDetector(clock)
     private var flowJob: Job? = null
     private var checkJob: Job? = null
     private var typeDoneJob: Job? = null
+    private var hesitationJob: Job? = null
     private var step: Step? = null
     private var dirty = false
     private var lastSaid: Pair<String, String>? = null
+    private var yourTurnSaid = false
+    private var settledAt = 0L
+    private var beforeListening: SessionState = SessionState.IDLE
 
     private class Step(
+        val number: Int,
         val plan: PlanResponse,
         val target: ScreenElement?,
         val snapshot: ScreenSnapshot,
         val verifier: StepVerifier,
+        val level: GuidanceLevel,
+        val fromCache: Boolean,
+        val plannerMs: Long?,
+        val settledAt: Long,
+        var shownAt: Long = 0,
+        var speechStartedAt: Long = 0,
         var wrongTapSaid: Boolean = false,
     )
 
     // ---------------------------------------------------------------- inputs
 
-    private var beforeListening: SessionState = SessionState.IDLE
+    /** A goal from speech, a quick task or the text box. While ASKING it is the answer instead. */
+    fun submitGoal(text: String) {
+        val goal = text.trim()
+        if (goal.isEmpty()) return
+        if (state == SessionState.ASKING) {
+            goalText = "$goalText\nUser answer: ${Masking.mask(goal)}"
+            runFlow { planFromScreen(fromNow = false) }
+            return
+        }
+        cancelJobs()
+        voice.stop()
+        ui.clear()
+        sessionId = newSessionId()
+        goalText = Masking.mask(goal)!!
+        goalKey = null
+        stepIndex = 0
+        _history.clear()
+        finishedSteps.clear()
+        step = null
+        lastSaid = null
+        yourTurnSaid = false
+        // SPEC 4 step 3: "Ek second, dekh rahi hoon" while the screen is read and planned.
+        ui.caption(caption(Phrase.THINKING.urdu, Phrase.THINKING.roman))
+        say(Phrase.THINKING)
+        runFlow { planFromScreen(fromNow = false) }
+    }
 
     /** The bubble is held (or tapped in Tap mode): stop talking and listen (SPEC 5.5 -> LISTENING). */
     fun listeningStarted() {
         beforeListening = if (state == SessionState.LISTENING || state == SessionState.TRANSCRIBING) beforeListening else state
+        abandonStep("interrupted")
         cancelJobs()
         voice.stop()
         ui.clear()
-        step = null
         setState(SessionState.LISTENING)
         ui.bubble(BubbleState.LISTENING, showClose = true)
         ui.caption(caption(Phrase.ASK_GOAL.urdu, Phrase.ASK_GOAL.roman))
@@ -127,50 +192,31 @@ class GuidanceSession(
         submitGoal(text)
     }
 
-    /** A goal from speech, a quick task or the text box. While ASKING it is the answer instead. */
-    fun submitGoal(text: String) {
-        val goal = text.trim()
-        if (goal.isEmpty()) return
-        if (state == SessionState.ASKING) {
-            goalText = "$goalText\nUser answer: ${Masking.mask(goal)}"
-            runFlow { planFromScreen(fromNow = false) }
-            return
-        }
-        cancelJobs()
-        voice.stop()
-        ui.clear()
-        sessionId = newSessionId()
-        goalText = Masking.mask(goal)!!
-        goalKey = null
-        stepIndex = 0
-        _history.clear()
-        step = null
-        lastSaid = null
-        // SPEC 4 step 3: "Ek second, dekh rahi hoon" while the screen is read and planned.
-        ui.caption(caption(Phrase.THINKING.urdu, Phrase.THINKING.roman))
-        say(Phrase.THINKING)
-        runFlow { planFromScreen(fromNow = false) }
-    }
-
-    /** Short tap on the bubble during a session: repeat; in ERROR: retry. */
+    /** Short tap on the bubble during a session: repeat with full help; in ERROR: retry. */
     fun onBubbleTap() {
         when (state) {
             SessionState.ERROR -> runFlow { planFromScreen(fromNow = false) }
             SessionState.POINTING, SessionState.WAITING_FOR_USER -> {
                 val s = step ?: return
-                showStep(s, repeat = true)
+                showFull(s, speak = true)
             }
             SessionState.ASKING, SessionState.SENSITIVE_PAUSE -> lastSaid?.let { (u, r) -> say(u, r) }
             else -> Unit
         }
     }
 
+    /** Audio really started (for the `ttsStartMs` metric). */
+    fun onSpeechStarted() {
+        val s = step ?: return
+        if (s.speechStartedAt == 0L && s.shownAt != 0L) s.speechStartedAt = clock()
+    }
+
     /** Bubble "×" or notification "Band karein" (rule 7): stop everything now. */
     fun cancel() {
+        abandonStep("cancelled")
         cancelJobs()
         voice.stop()
         ui.clear()
-        step = null
         setState(SessionState.IDLE)
         ui.bubble(BubbleState.IDLE, showClose = false)
     }
@@ -214,8 +260,7 @@ class GuidanceSession(
         when (s.verifier.onClick(e.packageName, e.source)) {
             StepVerifier.Click.MATCH -> stepDone(s, "done")
             // A wrong tap may or may not change the screen; look once it settles.
-            StepVerifier.Click.MISMATCH -> scheduleCheck(fromNow = true)
-            StepVerifier.Click.UNKNOWN -> scheduleCheck(fromNow = true)
+            StepVerifier.Click.MISMATCH, StepVerifier.Click.UNKNOWN -> scheduleCheck(fromNow = true)
         }
     }
 
@@ -232,12 +277,20 @@ class GuidanceSession(
         if (checkJob?.isActive == true) return
         checkJob = scope.launch {
             settle.await(fromNow)
+            settledAt = clock()
             val snapshot = screen.read() ?: return@launch
             when (state) {
                 SessionState.SENSITIVE_PAUSE -> if (SafetyGuard.check(snapshot) == GuardResult.Safe) {
                     runFlow { planFrom(snapshot) }
                 }
-                SessionState.POINTING, SessionState.WAITING_FOR_USER -> judge(snapshot)
+                SessionState.POINTING, SessionState.WAITING_FOR_USER -> {
+                    // A PIN field can appear on the same window (e.g. a bottom sheet): hide the pointer now.
+                    if (SafetyGuard.check(snapshot) is GuardResult.Sensitive) {
+                        step?.let { stepDone(it, "done", next = snapshot) }
+                    } else {
+                        judge(snapshot)
+                    }
+                }
                 else -> Unit
             }
         }
@@ -262,13 +315,36 @@ class GuidanceSession(
         step = null
         typeDoneJob?.cancel()
         checkJob?.cancel()
+        hesitationJob?.cancel()
         addHistory(s, outcome)
+        report(s, outcome, tapped = true)
+        if (outcome == "done") {
+            goalKey?.let { gk ->
+                learning.recordSuccess(LearningStore.key(gk, s.snapshot.packageName, LearningStore.targetKey(s.target, s.plan.action)))
+                finishedSteps += PlanCache.Step(
+                    goalKey = gk,
+                    signature = s.snapshot.signature,
+                    action = s.plan.action,
+                    target = PlanCache.targetOf(s.target),
+                    scrollDirection = s.plan.scrollDirection,
+                    sayUrdu = s.plan.sayUrdu,
+                    sayRoman = s.plan.sayRoman,
+                )
+            }
+        }
         ui.clear()
         voice.stop() // the old instruction is no longer true
         phrase?.let { say(it) }
         runFlow {
             if (next != null) planFrom(next) else planFromScreen(fromNow = true)
         }
+    }
+
+    /** A step that was shown but never finished (cancel, new goal) still gets a metrics line. */
+    private fun abandonStep(outcome: String) {
+        val s = step ?: return
+        step = null
+        report(s, outcome, tapped = false)
     }
 
     private fun addHistory(s: Step, outcome: String) {
@@ -286,6 +362,7 @@ class GuidanceSession(
     private fun runFlow(block: suspend () -> Unit) {
         flowJob?.cancel()
         checkJob?.cancel()
+        hesitationJob?.cancel()
         flowJob = scope.launch { block() }
     }
 
@@ -293,6 +370,7 @@ class GuidanceSession(
         setState(SessionState.READING_SCREEN)
         ui.bubble(BubbleState.THINKING, showClose = true)
         settle.await(fromNow)
+        settledAt = clock()
         var snapshot = screen.read()
         var tries = 0
         while (snapshot == null && tries++ < 2) {
@@ -306,21 +384,48 @@ class GuidanceSession(
         planFrom(snapshot)
     }
 
-    private suspend fun planFrom(first: ScreenSnapshot, replans: Int = 0) {
-        val snapshot = first
+    private suspend fun planFrom(snapshot: ScreenSnapshot, replans: Int = 0) {
         if (snapshot.packageName == ownPackage) {
             // Rehnuma's own screen is in front (e.g. a quick task from Home): guide the user out first.
-            pointNav(PlanResponse.HOME, "گھر والا بٹن دبائیں یا نیچے سے اوپر سوائپ کریں", "Home button dabayein ya neeche se upar swipe karein", snapshot)
+            val p = PlanResponse(
+                action = PlanResponse.HOME,
+                sayUrdu = "گھر والا بٹن دبائیں یا نیچے سے اوپر سوائپ کریں",
+                sayRoman = "Home button dabayein ya neeche se upar swipe karein",
+                goalKey = goalKey,
+            )
+            startStep(p, null, snapshot, fromCache = false, plannerMs = null, level = GuidanceLevel.FULL)
             return
         }
         if (SafetyGuard.check(snapshot) is GuardResult.Sensitive) {
-            enterSensitivePause()
+            enterSensitivePause(snapshot)
             return
         }
         if (stepIndex >= MAX_STEPS) {
             endWith(Phrase.CANT_HELP)
             return
         }
+
+        // SPEC 9.2: after the first step, a known screen of a known task needs no network.
+        val gk = goalKey
+        if (gk != null && stepIndex >= 1) {
+            val lookupStart = clock()
+            val hit = cache.lookup(gk, snapshot)
+            if (hit != null) {
+                stepIndex++
+                val p = PlanResponse(
+                    action = hit.step.action,
+                    elementId = hit.element?.id,
+                    scrollDirection = hit.step.scrollDirection,
+                    sayUrdu = hit.step.sayUrdu,
+                    sayRoman = hit.step.sayRoman,
+                    goalKey = gk,
+                    confidence = 1.0,
+                )
+                handlePlan(p, snapshot, fromCache = true, plannerMs = clock() - lookupStart)
+                return
+            }
+        }
+
         setState(SessionState.PLANNING)
         ui.bubble(BubbleState.THINKING, showClose = true)
         dirty = false
@@ -352,17 +457,18 @@ class GuidanceSession(
                     val now = screen.read()
                     if (now != null && (now.signature != snapshot.signature || now.windowId != snapshot.windowId)) {
                         stepIndex--
+                        settledAt = clock()
                         planFrom(now, replans + 1)
                         return
                     }
                 }
                 if (goalKey == null) goalKey = result.value.goalKey
-                handlePlan(result.value, snapshot)
+                handlePlan(result.value, snapshot, fromCache = false, plannerMs = result.ms)
             }
         }
     }
 
-    private fun handlePlan(plan: PlanResponse, snapshot: ScreenSnapshot) {
+    private fun handlePlan(plan: PlanResponse, snapshot: ScreenSnapshot, fromCache: Boolean, plannerMs: Long?) {
         when (plan.action) {
             PlanResponse.TAP, PlanResponse.TYPE, PlanResponse.SCROLL -> {
                 val target = plan.elementId?.let { snapshot.element(it) }
@@ -370,49 +476,110 @@ class GuidanceSession(
                     endWith(Phrase.CANT_HELP)
                     return
                 }
-                val s = Step(plan, target, snapshot, StepVerifier(plan.action, target, snapshot))
-                step = s
-                showStep(s, repeat = false)
+                startStep(plan, target, snapshot, fromCache, plannerMs, levelFor(plan, target, snapshot))
             }
-            PlanResponse.BACK, PlanResponse.HOME -> pointNav(plan.action, plan.sayUrdu, plan.sayRoman, snapshot, plan)
+            PlanResponse.BACK, PlanResponse.HOME ->
+                startStep(plan, null, snapshot, fromCache, plannerMs, levelFor(plan, null, snapshot))
             PlanResponse.ASK -> {
+                reportTerminal(plan, snapshot, fromCache, plannerMs, "asked")
                 setState(SessionState.ASKING, plan.sayRoman)
                 ui.bubble(BubbleState.IDLE, showClose = true)
                 ui.caption(caption(plan.sayUrdu, plan.sayRoman))
                 say(plan.sayUrdu, plan.sayRoman)
             }
-            PlanResponse.DONE -> complete(plan)
-            else -> endWith(Phrase.CANT_HELP)
+            PlanResponse.DONE -> {
+                reportTerminal(plan, snapshot, fromCache, plannerMs, "completed")
+                complete(plan)
+            }
+            else -> {
+                reportTerminal(plan, snapshot, fromCache, plannerMs, "cant_help")
+                endWith(Phrase.CANT_HELP)
+            }
         }
     }
 
-    private fun pointNav(action: String, urdu: String, roman: String, snapshot: ScreenSnapshot, plan: PlanResponse? = null) {
-        val p = plan ?: PlanResponse(action = action, sayUrdu = urdu, sayRoman = roman, goalKey = goalKey)
-        val s = Step(p, null, snapshot, StepVerifier(action, null, snapshot))
+    private fun levelFor(plan: PlanResponse, target: ScreenElement?, snapshot: ScreenSnapshot): GuidanceLevel {
+        if (config().demoMode) return GuidanceLevel.FULL
+        val gk = goalKey ?: return GuidanceLevel.FULL
+        return learning.level(LearningStore.key(gk, snapshot.packageName, LearningStore.targetKey(target, plan.action)))
+    }
+
+    private fun startStep(
+        plan: PlanResponse,
+        target: ScreenElement?,
+        snapshot: ScreenSnapshot,
+        fromCache: Boolean,
+        plannerMs: Long?,
+        level: GuidanceLevel,
+    ) {
+        val s = Step(
+            number = stepIndex, plan = plan, target = target, snapshot = snapshot,
+            verifier = StepVerifier(plan.action, target, snapshot), level = level,
+            fromCache = fromCache, plannerMs = plannerMs, settledAt = settledAt,
+        )
         step = s
-        showStep(s, repeat = false)
+        setState(SessionState.POINTING, plan.sayRoman)
+        s.shownAt = clock()
+        when (level) {
+            GuidanceLevel.FULL -> showFull(s, speak = true)
+            GuidanceLevel.HINT -> {
+                // Short spoken hint and caption; the hand only if the user hesitates (SPEC 9.1).
+                val urdu = firstClause(plan.sayUrdu)
+                val roman = firstClause(plan.sayRoman)
+                ui.bubble(BubbleState.SPEAKING, showClose = true)
+                ui.point(pointerTarget(s), caption(urdu, roman), withHand = false) { arrived(s) }
+                say(urdu, roman) { if (step === s) ui.bubble(BubbleState.IDLE, showClose = true) }
+                revealAfter(s, HINT_REVEAL_MS)
+            }
+            GuidanceLevel.SILENT -> {
+                ui.bubble(BubbleState.IDLE, showClose = true)
+                ui.point(pointerTarget(s), null, withHand = false) { arrived(s) }
+                if (!yourTurnSaid) {
+                    yourTurnSaid = true
+                    say(Phrase.YOUR_TURN)
+                }
+                revealAfter(s, SILENT_REVEAL_MS)
+            }
+        }
     }
 
-    private fun showStep(s: Step, repeat: Boolean) {
-        val target = when (s.plan.action) {
-            PlanResponse.SCROLL -> PointerTarget.Scroll(s.target!!.bounds, s.plan.scrollDirection ?: "down")
-            PlanResponse.BACK, PlanResponse.HOME -> PointerTarget.Nav(s.plan.action)
-            else -> PointerTarget.Element(s.target!!.bounds)
-        }
-        if (!repeat) setState(SessionState.POINTING, s.plan.sayRoman)
+    /** Hand, ring and caption, with the full spoken instruction (FULL level, repeats, hesitation). */
+    private fun showFull(s: Step, speak: Boolean) {
         ui.bubble(BubbleState.SPEAKING, showClose = true)
-        ui.point(target, caption(s.plan.sayUrdu, s.plan.sayRoman), withHand = true) {
-            if (step === s && state == SessionState.POINTING) setState(SessionState.WAITING_FOR_USER, s.plan.sayRoman)
+        ui.point(pointerTarget(s), caption(s.plan.sayUrdu, s.plan.sayRoman), withHand = true) { arrived(s) }
+        if (speak) {
+            say(s.plan.sayUrdu, s.plan.sayRoman) {
+                if (step === s) ui.bubble(BubbleState.IDLE, showClose = true)
+            }
+        } else {
+            ui.bubble(BubbleState.IDLE, showClose = true)
         }
-        say(s.plan.sayUrdu, s.plan.sayRoman) {
-            if (step === s) ui.bubble(BubbleState.IDLE, showClose = true)
+    }
+
+    private fun arrived(s: Step) {
+        if (step === s && state == SessionState.POINTING) setState(SessionState.WAITING_FOR_USER, s.plan.sayRoman)
+    }
+
+    private fun revealAfter(s: Step, ms: Long) {
+        hesitationJob?.cancel()
+        hesitationJob = scope.launch {
+            delay(ms)
+            if (step === s) showFull(s, speak = false)
         }
+    }
+
+    private fun pointerTarget(s: Step): PointerTarget = when (s.plan.action) {
+        PlanResponse.SCROLL -> PointerTarget.Scroll(s.target!!.bounds, s.plan.scrollDirection ?: "down")
+        PlanResponse.BACK, PlanResponse.HOME -> PointerTarget.Nav(s.plan.action)
+        else -> PointerTarget.Element(s.target!!.bounds)
     }
 
     // ---------------------------------------------------------------- endings and pauses
 
-    private fun enterSensitivePause() {
+    private fun enterSensitivePause(snapshot: ScreenSnapshot) {
         step = null
+        hesitationJob?.cancel()
+        if (state != SessionState.SENSITIVE_PAUSE) observer.onSensitivePause(sessionId, snapshot.packageName)
         setState(SessionState.SENSITIVE_PAUSE, Phrase.SENSITIVE_PAUSE.roman)
         ui.clear()
         ui.bubble(BubbleState.PAUSED, showClose = true)
@@ -422,6 +589,7 @@ class GuidanceSession(
 
     private fun complete(plan: PlanResponse) {
         step = null
+        goalKey?.let { cache.store(it, finishedSteps.toList()) }
         // "done" because the rest is the user's own (PIN, payment): say the planner's sentence.
         val userFinishes = plan.sayRoman.contains("khud", ignoreCase = true)
         val urdu = if (userFinishes) plan.sayUrdu else Phrase.DONE.urdu
@@ -467,6 +635,40 @@ class GuidanceSession(
         lastSaid = urdu to roman
     }
 
+    // ---------------------------------------------------------------- metrics
+
+    private fun report(s: Step, outcome: String, tapped: Boolean) {
+        val now = clock()
+        observer.onStep(
+            StepMetrics(
+                sessionId = sessionId,
+                step = s.number,
+                goalKey = goalKey,
+                packageName = s.snapshot.packageName,
+                action = s.plan.action,
+                readMs = s.snapshot.readMs,
+                plannerMs = s.plannerMs,
+                ttsStartMs = if (s.speechStartedAt > 0) s.speechStartedAt - s.shownAt else null,
+                timeToUserTapMs = if (tapped) now - s.shownAt else null,
+                settleToPointerMs = if (s.settledAt > 0) s.shownAt - s.settledAt else null,
+                outcome = outcome,
+                fromCache = s.fromCache,
+                guidanceLevel = s.level.name,
+            ),
+        )
+    }
+
+    private fun reportTerminal(plan: PlanResponse, snapshot: ScreenSnapshot, fromCache: Boolean, plannerMs: Long?, outcome: String) {
+        observer.onStep(
+            StepMetrics(
+                sessionId = sessionId, step = stepIndex, goalKey = goalKey, packageName = snapshot.packageName,
+                action = plan.action, readMs = snapshot.readMs, plannerMs = plannerMs, ttsStartMs = null,
+                timeToUserTapMs = null, settleToPointerMs = if (settledAt > 0) clock() - settledAt else null,
+                outcome = outcome, fromCache = fromCache, guidanceLevel = GuidanceLevel.FULL.name,
+            ),
+        )
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private fun say(p: Phrase) = say(p.urdu, p.roman)
@@ -488,6 +690,7 @@ class GuidanceSession(
         flowJob?.cancel()
         checkJob?.cancel()
         typeDoneJob?.cancel()
+        hesitationJob?.cancel()
     }
 
     companion object {
@@ -495,7 +698,17 @@ class GuidanceSession(
         const val MAX_HISTORY = 8
         const val MAX_REPLANS = 2
         const val TYPE_QUIET_MS = 3000L
+        const val HINT_REVEAL_MS = 6000L
+        const val SILENT_REVEAL_MS = 10_000L
         const val END_LINGER_MS = 1500L
         const val END_MAX_MS = 8000L
+
+        private val CLAUSE_END = Regex("""[،,؛;.۔!?]""")
+
+        /** "Sara ke naam pe dabayein, phir photo chunein" -> "Sara ke naam pe dabayein" (SPEC 9.1 HINT). */
+        fun firstClause(s: String): String {
+            val cut = CLAUSE_END.find(s)?.range?.first ?: return s.trim()
+            return s.substring(0, cut).trim().ifEmpty { s.trim() }
+        }
     }
 }

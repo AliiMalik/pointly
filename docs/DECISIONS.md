@@ -84,6 +84,15 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Mock STT**: with `LLM_PROVIDER=mock`, `MOCK_STT_TEXT` is returned as the transcript so the spoken flow can be rehearsed on an emulator without a microphone.
 - **Emulator check**: holding the bubble shows the mic UI and starts Android's recognizer; silence → recognizer error 7 → DIDNT_HEAR. With Voice in = Cloud, the WAV upload reaches `/v1/stt` (200) and the mock transcript drove a plan: 2.1 s of audio, transcript in 0.76 s, hand on "Display size & text" ~0.8 s after release. The emulator has **no on-device Urdu TTS voice** and this PC has no Cloud TTS credentials, so speech fell back to captions only, as designed. Check SPEC 15 questions 2 and 3 on the demo phone.
 
+## Phase 6: Safety and fading (2026-10-14)
+
+- **Labels are hashed at rest.** SPEC 9 keys LearningStore by the target's view id or normalized label, and PlanCache stores `normLabel`. Labels can hold contact names and message previews, so both stores keep an 8-byte SHA-1 of the normalized label instead; matching is unchanged. The spoken sentences (`say_urdu`, `say_roman`) are still cached, as SPEC 9.2 requires.
+- **Levels** (SPEC 9.1) per `goalKey|package|targetKey`: 0–1 successes FULL, 2–3 HINT, 4+ SILENT; Demo mode forces FULL. HINT speaks and captions only the first clause (split at `، , ؛ ; . ۔ ! ?`), with no ring or hand until 6 s pass. SILENT says YOUR_TURN once per session and shows nothing until 10 s. On hesitation the full pointer and caption appear (without repeating speech). A bubble tap always repeats with full help.
+- A success is counted only for steps that end `done` (not deviated or cancelled). "Seekhna reset karein" clears LearningStore only; the plan cache is a speed cache, not learning.
+- **PlanCache**: when a session ends with `done`, its `done` steps are stored per `goal_key` (newer steps replace older ones for the same screen signature; 30 steps × 50 goals max). From step 2 on, a step whose signature matches and whose target is found (view id, then label hash) is used without calling the backend; `fromCache=true` in metrics. Step 1 always asks the backend to learn `goal_key`.
+- **Same-window sensitive screens**: while the pointer is up, every settled re-read goes through SafetyGuard first. A PIN keypad or password sheet opening on the same window (a common wallet-app pattern) hides the pointer and pauses straight away, even though the verifier would have seen "unchanged".
+- **Metrics hooks**: the session now reports one `StepMetrics` per step (read, planner, speech-start, user-tap and settle→pointer timings; outcome; level; fromCache) and `onSensitivePause(package)` with nothing else. The logger arrives in Phase 7.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_
