@@ -1,30 +1,42 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:rehnuma/main.dart';
+import 'package:rehnuma/channel/rehnuma_channel.dart';
+import 'package:rehnuma/l10n/strings.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('RehnumaState parses the EventChannel map', () {
+    final s = RehnumaState.fromMap({
+      'state': 'POINTING',
+      'goalText': 'WiFi on karna hai',
+      'step': 2,
+      'captionRoman': 'WiFi wala button dabayein',
+    });
+    expect(s.state, 'POINTING');
+    expect(s.goalText, 'WiFi on karna hai');
+    expect(s.step, 2);
+    expect(s.captionRoman, 'WiFi wala button dabayein');
+    expect(s.error, isNull);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('missing state falls back to IDLE', () {
+    expect(RehnumaState.fromMap({}).state, 'IDLE');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('five quick tasks from SPEC 8.4', () {
+    expect(S.quickTasks.map((t) => t.goal), [
+      'WhatsApp pe photo bhejni hai',
+      'Phone ke likhai bari karni hai',
+      'WiFi on karna hai',
+      'Kisi ko call karni hai',
+      'Mobile load karna hai',
+    ]);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('every session state has a friendly label', () {
+    for (final state in [
+      'IDLE', 'LISTENING', 'TRANSCRIBING', 'READING_SCREEN', 'SENSITIVE_PAUSE', 'PLANNING',
+      'POINTING', 'WAITING_FOR_USER', 'ASKING', 'COMPLETED', 'ERROR',
+    ]) {
+      expect(S.stateLabel(state).en, isNot(state), reason: state);
+    }
   });
 }

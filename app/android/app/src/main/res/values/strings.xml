@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Rehnuma reads the labels on your screen only while you ask it for help. It never taps or types for you, never takes screenshots, and stops reading on PIN or password screens.\n\nرہنما صرف اس وقت آپ کی اسکرین کے لیبل پڑھتی ہے جب آپ مدد مانگیں۔ یہ آپ کی جگہ کچھ نہیں دباتی، کبھی اسکرین کی تصویر نہیں لیتی، اور PIN یا پاس ورڈ والی اسکرین پر پڑھنا بند کر دیتی ہے۔</string>
+    <string name="notification_channel_name">Rehnuma madad</string>
+    <string name="notification_title">Rehnuma chal rahi hai</string>
+    <string name="notification_text">Bubble dabayein aur bataiye kya karna hai.</string>
+    <string name="notification_stop">Band karein</string>
+</resources>
