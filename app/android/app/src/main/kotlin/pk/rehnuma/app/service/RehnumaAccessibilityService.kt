@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pk.rehnuma.app.bridge.RehnumaEvents
 import pk.rehnuma.app.config.AppConfig
+import pk.rehnuma.app.metrics.MetricsLogger
+import pk.rehnuma.app.session.StepMetrics
 import pk.rehnuma.app.net.PlannerClient
 import pk.rehnuma.app.overlay.BubbleOverlay
 import pk.rehnuma.app.overlay.BubbleState
@@ -66,6 +68,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var speechIn: SpeechInput
     private lateinit var learning: LearningStore
     private lateinit var planCache: PlanCache
+    private lateinit var metrics: MetricsLogger
     private var config = AppConfig()
     private var bubbleVisible = false
     private var debugRefresh: Job? = null
@@ -88,6 +91,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         speechIn = SpeechInput(this, { config }, planner, scope)
         learning = LearningStore(File(filesDir, LEARNING_FILE)) { System.currentTimeMillis() }
         planCache = PlanCache(File(filesDir, PLAN_CACHE_FILE))
+        metrics = MetricsLogger(File(filesDir, MetricsLogger.FILE_NAME))
         session = GuidanceSession(
             scope = scope,
             screen = { readScreen() },
@@ -227,8 +231,11 @@ class RehnumaAccessibilityService : AccessibilityService() {
     }
 
     private val sessionObserver = object : SessionObserver {
+        override fun onStep(m: StepMetrics) = metrics.onStep(m)
+
         override fun onSensitivePause(sessionId: String, packageName: String) {
             Log.i(TAG, "sensitive_pause $packageName") // package only (SPEC 5.4)
+            metrics.onSensitivePause(sessionId, packageName)
         }
     }
 
@@ -419,9 +426,16 @@ class RehnumaAccessibilityService : AccessibilityService() {
             return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
         }
 
-        fun metricsSummary(context: Context): Map<String, Any?> = emptyMap()
+        fun metricsSummary(context: Context): Map<String, Any?> =
+            MetricsLogger(File(context.filesDir, MetricsLogger.FILE_NAME)).summary()
 
-        fun exportMetrics(activity: Activity): String? = null
+        /** Copies `metrics.jsonl` to `filesDir/exports/` and opens the share sheet (SPEC 5.14). */
+        fun exportMetrics(activity: Activity): String? {
+            val copy = MetricsLogger(File(activity.filesDir, MetricsLogger.FILE_NAME))
+                .exportCopy(File(activity.filesDir, "exports")) ?: return null
+            SnapshotSaver.share(activity, copy, "text/plain")
+            return copy.path
+        }
 
         fun resetLearning(context: Context) {
             val live = instance

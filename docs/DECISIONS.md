@@ -93,6 +93,14 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Same-window sensitive screens**: while the pointer is up, every settled re-read goes through SafetyGuard first. A PIN keypad or password sheet opening on the same window (a common wallet-app pattern) hides the pointer and pauses straight away, even though the verifier would have seen "unchanged".
 - **Metrics hooks**: the session now reports one `StepMetrics` per step (read, planner, speech-start, user-tap and settle→pointer timings; outcome; level; fromCache) and `onSensitivePause(package)` with nothing else. The logger arrives in Phase 7.
 
+## Phase 7: Metrics and evaluation (2026-10-14)
+
+- **`metrics.jsonl`** lines carry `sessionId, step, goalKey, package, action, readMs, plannerMs, ttsStartMs, timeToUserTapMs, settleToPointerMs, outcome, fromCache, guidanceLevel, ts` (SPEC 5.14 plus `settleToPointerMs` for the SPEC 12 "settle to pointer" target). Outcomes: `done`, `deviated`, `cancelled`, `interrupted` (user spoke a new goal), `completed`, `asked`, `cant_help`. Sensitive screens add only `{sessionId, package, event: "sensitive_pause", ts}`. `ttsStartMs` is measured from the pointer appearing to audio starting; it's empty when no voice is available (captions only).
+- **Summary** (Metrics screen): sessions, steps, success rate (sessions with a `completed` step), median planner ms (network steps only), median cached-step ms, median step time (pointer → user's tap), median read ms, median settle→pointer ms, cache hit rate (of guided steps), sensitive pauses.
+- **Export** copies the log to `filesDir/exports/` and shares that copy. The FileProvider now exposes only `exports/` and the external `snapshots/` folder, so `learning.json` and `plan_cache.json` can't be shared by mistake.
+- **`eval_planner.py`** calls `Planner.plan_detailed` (the `/v1/plan` code path, plus valid/retried flags) for every labelled file in `eval/snapshots/`, with up to 3 in parallel. Unlabelled files (empty `goal_text`/`expected`) are skipped and listed. Failures go to `eval/reports/failures-<time>.csv` (git-ignored). `--mock` checks the harness without a key.
+- **Bundled eval cases (9)**: 8 real emulator screens captured with the app's own "Save snapshot" (Settings main ×2 goals, Display & touch, Display size & text, Network & internet, Internet with Wi‑Fi already on → `done`, launcher → Phone, dialer with no contact named → `ask`) and 1 synthetic WhatsApp chat list from SPEC 6.2 (named `synthetic_…`). SPEC's target of 50 snapshots across WhatsApp, Settings and the wallet app needs the demo phone: capture with Metrics → "Save current screen snapshot" or the bubble panel's Snapshot button, fill `goal_text`/`expected`, drop into `backend/eval/snapshots/`.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_

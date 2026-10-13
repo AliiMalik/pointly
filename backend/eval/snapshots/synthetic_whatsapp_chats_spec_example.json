@@ -1,0 +1,64 @@
+{
+  "goal_text": "Beti Sara ko WhatsApp pe photo bhejni hai",
+  "expected": [
+    {
+      "action": "tap",
+      "element_id": 2
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Yeh hara WhatsApp icon dabayein",
+      "target_label": "WhatsApp",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.whatsapp",
+    "window_title": null,
+    "width": 1080,
+    "height": 2400,
+    "elements": [
+      {
+        "id": 1,
+        "text": "Chats",
+        "cls": "TextView",
+        "clickable": true,
+        "bounds": [
+          0,
+          300,
+          360,
+          400
+        ]
+      },
+      {
+        "id": 2,
+        "text": "Sara",
+        "label": "Sara · Kal milte hain",
+        "cls": "View",
+        "clickable": true,
+        "bounds": [
+          0,
+          420,
+          1080,
+          560
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "New chat",
+        "cls": "ImageButton",
+        "clickable": true,
+        "bounds": [
+          900,
+          2100,
+          1040,
+          2240
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 0,
+  "read_ms": 0
+}

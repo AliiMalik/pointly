@@ -1,0 +1,603 @@
+{
+  "goal_text": "Kisi ko call karni hai",
+  "expected": [
+    {
+      "action": "ask"
+    },
+    {
+      "action": "tap",
+      "element_id": 36
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Phone ka hara icon dabayein",
+      "target_label": "Phone",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.google.android.dialer",
+    "window_title": "Phone",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "label": "backspace · 1, · 2,ABC",
+        "view_id": "dialpad_view",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1278,
+          1280,
+          2592
+        ]
+      },
+      {
+        "id": 2,
+        "hint": "Phone Number",
+        "view_id": "digits",
+        "cls": "EditText",
+        "clickable": true,
+        "editable": true,
+        "scrollable": false,
+        "selected": true,
+        "bounds": [
+          168,
+          1278,
+          1112,
+          1443
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "backspace",
+        "view_id": "deleteButton",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1112,
+          1278,
+          1280,
+          1443
+        ]
+      },
+      {
+        "id": 4,
+        "desc": "1,",
+        "view_id": "one",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          24,
+          1491,
+          418,
+          1686
+        ]
+      },
+      {
+        "id": 5,
+        "text": "1",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          201,
+          1499,
+          240,
+          1617
+        ]
+      },
+      {
+        "id": 6,
+        "desc": "2,ABC",
+        "view_id": "two",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          442,
+          1491,
+          837,
+          1686
+        ]
+      },
+      {
+        "id": 7,
+        "text": "2",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          614,
+          1504,
+          664,
+          1622
+        ]
+      },
+      {
+        "id": 8,
+        "desc": "3,DEF",
+        "view_id": "three",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          861,
+          1491,
+          1256,
+          1686
+        ]
+      },
+      {
+        "id": 9,
+        "text": "3",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1033,
+          1504,
+          1083,
+          1622
+        ]
+      },
+      {
+        "id": 10,
+        "text": "ABC",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          600,
+          1622,
+          679,
+          1673
+        ]
+      },
+      {
+        "id": 11,
+        "text": "DEF",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1022,
+          1622,
+          1095,
+          1673
+        ]
+      },
+      {
+        "id": 12,
+        "desc": "4,GHI",
+        "view_id": "four",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          24,
+          1710,
+          418,
+          1905
+        ]
+      },
+      {
+        "id": 13,
+        "text": "4",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          193,
+          1723,
+          247,
+          1841
+        ]
+      },
+      {
+        "id": 14,
+        "desc": "5,JKL",
+        "view_id": "five",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          442,
+          1710,
+          837,
+          1905
+        ]
+      },
+      {
+        "id": 15,
+        "text": "5",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          613,
+          1723,
+          665,
+          1841
+        ]
+      },
+      {
+        "id": 16,
+        "desc": "6,MNO",
+        "view_id": "six",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          861,
+          1710,
+          1256,
+          1905
+        ]
+      },
+      {
+        "id": 17,
+        "text": "6",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1032,
+          1723,
+          1085,
+          1841
+        ]
+      },
+      {
+        "id": 18,
+        "text": "GHI",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          187,
+          1841,
+          254,
+          1892
+        ]
+      },
+      {
+        "id": 19,
+        "text": "JKL",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          605,
+          1841,
+          673,
+          1892
+        ]
+      },
+      {
+        "id": 20,
+        "text": "MNO",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1012,
+          1841,
+          1105,
+          1892
+        ]
+      },
+      {
+        "id": 21,
+        "desc": "7,PQRS",
+        "view_id": "seven",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          24,
+          1929,
+          418,
+          2124
+        ]
+      },
+      {
+        "id": 22,
+        "text": "7",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          196,
+          1942,
+          244,
+          2060
+        ]
+      },
+      {
+        "id": 23,
+        "desc": "8,TUV",
+        "view_id": "eight",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          442,
+          1929,
+          837,
+          2124
+        ]
+      },
+      {
+        "id": 24,
+        "text": "8",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          614,
+          1942,
+          665,
+          2060
+        ]
+      },
+      {
+        "id": 25,
+        "desc": "9,WXYZ",
+        "view_id": "nine",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          861,
+          1929,
+          1256,
+          2124
+        ]
+      },
+      {
+        "id": 26,
+        "text": "9",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1031,
+          1942,
+          1084,
+          2060
+        ]
+      },
+      {
+        "id": 27,
+        "text": "PQRS",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          169,
+          2060,
+          272,
+          2111
+        ]
+      },
+      {
+        "id": 28,
+        "text": "TUV",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          602,
+          2060,
+          677,
+          2111
+        ]
+      },
+      {
+        "id": 29,
+        "text": "WXYZ",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1005,
+          2060,
+          1111,
+          2111
+        ]
+      },
+      {
+        "id": 30,
+        "desc": "*",
+        "view_id": "star",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          24,
+          2148,
+          418,
+          2343
+        ]
+      },
+      {
+        "id": 31,
+        "text": "∗",
+        "view_id": "dialpad_key_number",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          199,
+          2156,
+          242,
+          2284
+        ]
+      },
+      {
+        "id": 32,
+        "desc": "0",
+        "view_id": "zero",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          442,
+          2148,
+          837,
+          2343
+        ]
+      },
+      {
+        "id": 33,
+        "desc": "#",
+        "view_id": "pound",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          861,
+          2148,
+          1256,
+          2343
+        ]
+      },
+      {
+        "id": 34,
+        "text": "+",
+        "view_id": "dialpad_key_letters",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          628,
+          2279,
+          651,
+          2330
+        ]
+      },
+      {
+        "id": 35,
+        "text": "Call",
+        "desc": "dial",
+        "view_id": "dialpad_voice_call_button",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          496,
+          2388,
+          784,
+          2556
+        ]
+      },
+      {
+        "id": 36,
+        "desc": "Home",
+        "view_id": "tab_call_history",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2592,
+          427,
+          2784
+        ]
+      },
+      {
+        "id": 37,
+        "desc": "Keypad",
+        "view_id": "tab_dialpad",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "selected": true,
+        "bounds": [
+          427,
+          2592,
+          854,
+          2784
+        ]
+      },
+      {
+        "id": 38,
+        "desc": "Voicemail",
+        "view_id": "tab_voicemail",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          854,
+          2592,
+          1280,
+          2784
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927862112,
+  "read_ms": 20
+}

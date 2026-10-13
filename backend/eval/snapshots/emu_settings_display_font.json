@@ -1,0 +1,285 @@
+{
+  "goal_text": "Phone ke likhai bari karni hai",
+  "expected": [
+    {
+      "action": "tap",
+      "element_id": 13
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Display and touch wala option dabayein",
+      "target_label": "Display & touch · Dark theme, font size, touch",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.android.settings",
+    "window_title": "Display & touch",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "view_id": "content_parent",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          156,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 2,
+        "desc": "Display & touch",
+        "view_id": "collapsing_toolbar",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          156,
+          1280,
+          324
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "Navigate up",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          48,
+          156,
+          216,
+          324
+        ]
+      },
+      {
+        "id": 4,
+        "view_id": "recycler_view",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          324,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 5,
+        "text": "Brightness",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          396,
+          1232,
+          453
+        ]
+      },
+      {
+        "id": 6,
+        "label": "Brightness level · 83%",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          483,
+          1280,
+          701
+        ]
+      },
+      {
+        "id": 7,
+        "text": "Lock display",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          779,
+          1232,
+          836
+        ]
+      },
+      {
+        "id": 8,
+        "label": "Lock screen · Show all notification content",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          866,
+          1280,
+          1084
+        ]
+      },
+      {
+        "id": 9,
+        "label": "Screen timeout · Not set",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1090,
+          1280,
+          1308
+        ]
+      },
+      {
+        "id": 10,
+        "text": "Appearance",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          1386,
+          1232,
+          1443
+        ]
+      },
+      {
+        "id": 11,
+        "label": "Dark theme · Will turn on when Bedtime starts",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1473,
+          1280,
+          1691
+        ]
+      },
+      {
+        "id": 12,
+        "desc": "Dark theme",
+        "view_id": "switchWidget",
+        "cls": "Switch",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "checked": false,
+        "bounds": [
+          1028,
+          1510,
+          1184,
+          1654
+        ]
+      },
+      {
+        "id": 13,
+        "label": "Display size & text · Font size, display size, bold text, ou",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1697,
+          1280,
+          1915
+        ]
+      },
+      {
+        "id": 14,
+        "label": "Navigation mode · Gesture navigation",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1921,
+          1280,
+          2139
+        ]
+      },
+      {
+        "id": 15,
+        "label": "Screen saver · On / Clock",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2145,
+          1280,
+          2363
+        ]
+      },
+      {
+        "id": 16,
+        "text": "Color",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          2441,
+          1232,
+          2498
+        ]
+      },
+      {
+        "id": 17,
+        "label": "Colors",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2528,
+          1280,
+          2744
+        ]
+      },
+      {
+        "id": 18,
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2750,
+          1280,
+          2784
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927816604,
+  "read_ms": 21
+}

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Only the export copies and debug snapshots can be shared; learning.json and plan_cache.json cannot. -->
 <paths>
-    <files-path name="metrics" path="." />
+    <files-path name="exports" path="exports/" />
     <external-files-path name="snapshots" path="snapshots/" />
 </paths>

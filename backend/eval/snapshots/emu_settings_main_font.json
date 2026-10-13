@@ -1,0 +1,193 @@
+{
+  "goal_text": "Phone ke likhai bari karni hai",
+  "expected": [
+    {
+      "action": "tap",
+      "element_id": 10
+    },
+    {
+      "action": "tap",
+      "element_id": 1
+    }
+  ],
+  "history": [],
+  "screen": {
+    "package": "com.android.settings",
+    "window_title": "Settings",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "label": "Search Settings",
+        "view_id": "search_action_bar",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          48,
+          180,
+          1232,
+          396
+        ]
+      },
+      {
+        "id": 2,
+        "view_id": "main_content_scrollable_container",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          420,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 3,
+        "label": "Google · Services & preferences",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          438,
+          1280,
+          656
+        ]
+      },
+      {
+        "id": 4,
+        "label": "Network & internet · Mobile, Wi‑Fi, hotspot",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          704,
+          1280,
+          922
+        ]
+      },
+      {
+        "id": 5,
+        "label": "Connected devices · Bluetooth, pairing",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          928,
+          1280,
+          1146
+        ]
+      },
+      {
+        "id": 6,
+        "label": "Apps · Assistant, recent apps, default apps",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1194,
+          1280,
+          1412
+        ]
+      },
+      {
+        "id": 7,
+        "label": "Notifications · Notification history, conversations",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1418,
+          1280,
+          1636
+        ]
+      },
+      {
+        "id": 8,
+        "label": "Sound & vibration · Volume and haptics",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1642,
+          1280,
+          1860
+        ]
+      },
+      {
+        "id": 9,
+        "label": "Modes · Do Not Disturb, Bedtime, Driving",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1866,
+          1280,
+          2084
+        ]
+      },
+      {
+        "id": 10,
+        "label": "Display & touch · Dark theme, font size, touch",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2090,
+          1280,
+          2308
+        ]
+      },
+      {
+        "id": 11,
+        "label": "Wallpaper & style · Colors, themed icons, app grid",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2314,
+          1280,
+          2532
+        ]
+      },
+      {
+        "id": 12,
+        "label": "Storage · 56% used - 27.90 GB free",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2580,
+          1280,
+          2784
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927807517,
+  "read_ms": 26
+}

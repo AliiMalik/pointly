@@ -1,0 +1,211 @@
+{
+  "goal_text": "WiFi on karna hai",
+  "expected": [
+    {
+      "action": "tap",
+      "element_id": 4
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Network and internet dabayein",
+      "target_label": "Network & internet · Mobile, Wi‑Fi, hotspot",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.android.settings",
+    "window_title": "Network & internet",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "view_id": "content_parent",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          156,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 2,
+        "desc": "Network & internet",
+        "view_id": "collapsing_toolbar",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          156,
+          1280,
+          324
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "Navigate up",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          48,
+          156,
+          216,
+          324
+        ]
+      },
+      {
+        "id": 4,
+        "label": "Internet · AndroidWifi",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          324,
+          1280,
+          542
+        ]
+      },
+      {
+        "id": 5,
+        "label": "SIMs · T-Mobile",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          548,
+          1280,
+          766
+        ]
+      },
+      {
+        "id": 6,
+        "label": "Airplane mode",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          772,
+          1280,
+          988
+        ]
+      },
+      {
+        "id": 7,
+        "view_id": "switchWidget",
+        "cls": "Switch",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "checked": false,
+        "bounds": [
+          1028,
+          808,
+          1184,
+          952
+        ]
+      },
+      {
+        "id": 8,
+        "label": "Hotspot & tethering · Off",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          994,
+          1280,
+          1212
+        ]
+      },
+      {
+        "id": 9,
+        "label": "Data Saver · Off",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1218,
+          1280,
+          1436
+        ]
+      },
+      {
+        "id": 10,
+        "label": "VPN · None",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1442,
+          1280,
+          1660
+        ]
+      },
+      {
+        "id": 11,
+        "label": "Private DNS · Automatic",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1666,
+          1280,
+          1884
+        ]
+      },
+      {
+        "id": 12,
+        "label": "Adaptive connectivity · On",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1890,
+          1280,
+          2108
+        ]
+      },
+      {
+        "id": 13,
+        "label": "Mobile network security · Network type, encryption, notifica",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2114,
+          1280,
+          2332
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927834810,
+  "read_ms": 21
+}

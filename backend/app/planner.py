@@ -122,6 +122,11 @@ class Planner:
         return raw, json.dumps(raw, ensure_ascii=False), None
 
     async def plan(self, request: PlanRequest) -> PlanResponse:
+        response, _valid, _retried = await self.plan_detailed(request)
+        return response
+
+    async def plan_detailed(self, request: PlanRequest) -> tuple[PlanResponse, bool, bool]:
+        """Like `plan`, plus whether the model's answer was valid and whether a retry was needed."""
         start = time.monotonic()
         req = mask_request(request)
         ids = {e.id for e in req.screen.elements}
@@ -154,7 +159,7 @@ class Planner:
             plan = cant_help()
         latency_ms = int((time.monotonic() - start) * 1000)
         self._log(req, plan, latency_ms, retried, valid=valid)
-        return PlanResponse(**plan.model_dump(), latency_ms=latency_ms)
+        return PlanResponse(**plan.model_dump(), latency_ms=latency_ms), valid, retried
 
     def _log(self, req: PlanRequest, plan: LLMPlan | None, latency_ms: int, retried: bool, valid: bool, error: str | None = None) -> None:
         if self.log is None:

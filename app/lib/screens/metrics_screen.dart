@@ -57,6 +57,8 @@ class _MetricsScreenState extends State<MetricsScreen> {
       (S.metReadMs, _fmt('medianReadMs')),
       (S.metSettleToPointer, _fmt('medianSettleToPointerMs')),
       (S.metCacheRate, _fmt('cacheHitRate', percent: true)),
+      (S.metCachedMs, _fmt('medianCachedMs')),
+      (S.metSensitive, _fmt('sensitivePauses')),
     ];
     return Scaffold(
       appBar: AppBar(

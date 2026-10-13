@@ -97,6 +97,8 @@ class S {
   static const metPlannerMs = Bi('پلانر وقت (درمیانہ)', 'Median planner ms');
   static const metStepMs = Bi('قدم کا وقت (درمیانہ)', 'Median step time ms');
   static const metCacheRate = Bi('کیش سے', 'Cache hit rate');
+  static const metCachedMs = Bi('کیش والا قدم (درمیانہ)', 'Median cached step ms');
+  static const metSensitive = Bi('PIN اسکرین پر رکی', 'Sensitive pauses');
   static const metReadMs = Bi('اسکرین پڑھنے کا وقت', 'Median screen read ms');
   static const metSettleToPointer = Bi('پوائنٹر آنے کا وقت', 'Median settle → pointer ms');
   static const metSteps = Bi('قدم', 'Steps');

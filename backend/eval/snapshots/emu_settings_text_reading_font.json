@@ -1,0 +1,462 @@
+{
+  "goal_text": "Phone ke likhai bari karni hai",
+  "expected": [
+    {
+      "action": "tap",
+      "element_id": 20
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Display and touch wala option dabayein",
+      "target_label": "Display & touch · Dark theme, font size, touch",
+      "outcome": "done"
+    },
+    {
+      "step": 2,
+      "instruction_roman": "Display size and text dabayein",
+      "target_label": "Display size & text · Font size, display size, bold text, ou",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.android.settings",
+    "window_title": "Display size & text",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "view_id": "content_parent",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          156,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 2,
+        "desc": "Display size & text",
+        "view_id": "collapsing_toolbar",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          156,
+          1280,
+          324
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "Navigate up",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          48,
+          156,
+          216,
+          324
+        ]
+      },
+      {
+        "id": 4,
+        "view_id": "recycler_view",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          324,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 5,
+        "text": "Preview",
+        "view_id": "preview_label",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          576,
+          408,
+          704,
+          457
+        ]
+      },
+      {
+        "id": 6,
+        "desc": "Preview",
+        "view_id": "preview_pager",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          102,
+          457,
+          1178,
+          1177
+        ]
+      },
+      {
+        "id": 7,
+        "desc": "Home screen",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          102,
+          457,
+          1178,
+          1177
+        ]
+      },
+      {
+        "id": 8,
+        "text": "Camera",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          185,
+          774,
+          377,
+          823
+        ]
+      },
+      {
+        "id": 9,
+        "text": "Chrome",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          543,
+          774,
+          735,
+          823
+        ]
+      },
+      {
+        "id": 10,
+        "text": "Drive",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          901,
+          774,
+          1093,
+          823
+        ]
+      },
+      {
+        "id": 11,
+        "text": "Maps",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          185,
+          1051,
+          377,
+          1100
+        ]
+      },
+      {
+        "id": 12,
+        "text": "Play Store",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          543,
+          1051,
+          735,
+          1100
+        ]
+      },
+      {
+        "id": 13,
+        "text": "Settings",
+        "view_id": "text1",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          901,
+          1051,
+          1093,
+          1100
+        ]
+      },
+      {
+        "id": 14,
+        "desc": "Previous preview",
+        "view_id": "preview_left_button",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          418,
+          1177,
+          562,
+          1321
+        ]
+      },
+      {
+        "id": 15,
+        "desc": "Next preview",
+        "view_id": "preview_right_button",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          718,
+          1177,
+          862,
+          1321
+        ]
+      },
+      {
+        "id": 16,
+        "text": "Size options",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          1483,
+          1232,
+          1540
+        ]
+      },
+      {
+        "id": 17,
+        "text": "Font size",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          1618,
+          291,
+          1683
+        ]
+      },
+      {
+        "id": 18,
+        "text": "Make text bigger or smaller",
+        "view_id": "summary",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          1683,
+          604,
+          1740
+        ]
+      },
+      {
+        "id": 19,
+        "desc": "Decrease font size",
+        "view_id": "icon_start_frame",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          1740,
+          240,
+          1884
+        ]
+      },
+      {
+        "id": 20,
+        "desc": "Increase font size",
+        "view_id": "icon_end_frame",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1040,
+          1740,
+          1184,
+          1884
+        ]
+      },
+      {
+        "id": 21,
+        "text": "Display size",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          1986,
+          351,
+          2051
+        ]
+      },
+      {
+        "id": 22,
+        "text": "Make everything bigger or smaller",
+        "view_id": "summary",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          2051,
+          725,
+          2108
+        ]
+      },
+      {
+        "id": 23,
+        "desc": "Decrease display size",
+        "view_id": "icon_start_frame",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          2108,
+          240,
+          2252
+        ]
+      },
+      {
+        "id": 24,
+        "desc": "Increase display size",
+        "view_id": "icon_end_frame",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1040,
+          2108,
+          1184,
+          2252
+        ]
+      },
+      {
+        "id": 25,
+        "text": "Style options",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          2378,
+          1232,
+          2435
+        ]
+      },
+      {
+        "id": 26,
+        "label": "Bold text",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2465,
+          1280,
+          2681
+        ]
+      },
+      {
+        "id": 27,
+        "view_id": "switchWidget",
+        "cls": "Switch",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "checked": false,
+        "bounds": [
+          1028,
+          2501,
+          1184,
+          2645
+        ]
+      },
+      {
+        "id": 28,
+        "label": "Outline text",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2687,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 29,
+        "view_id": "switchWidget",
+        "cls": "Switch",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "checked": false,
+        "bounds": [
+          1028,
+          2748,
+          1184,
+          2784
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927825700,
+  "read_ms": 26
+}

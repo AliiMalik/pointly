@@ -1,0 +1,322 @@
+{
+  "goal_text": "WiFi on karna hai",
+  "expected": [
+    {
+      "action": "done"
+    }
+  ],
+  "history": [
+    {
+      "step": 1,
+      "instruction_roman": "Network and internet dabayein",
+      "target_label": "Network & internet · Mobile, Wi‑Fi, hotspot",
+      "outcome": "done"
+    },
+    {
+      "step": 2,
+      "instruction_roman": "Internet wala option dabayein",
+      "target_label": "Internet · AndroidWifi",
+      "outcome": "done"
+    }
+  ],
+  "screen": {
+    "package": "com.android.settings",
+    "window_title": "Internet",
+    "width": 1280,
+    "height": 2856,
+    "elements": [
+      {
+        "id": 1,
+        "view_id": "content_parent",
+        "cls": "List",
+        "clickable": false,
+        "editable": false,
+        "scrollable": true,
+        "bounds": [
+          0,
+          156,
+          1280,
+          2784
+        ]
+      },
+      {
+        "id": 2,
+        "desc": "Internet",
+        "view_id": "collapsing_toolbar",
+        "cls": "View",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          156,
+          1280,
+          324
+        ]
+      },
+      {
+        "id": 3,
+        "desc": "Navigate up",
+        "cls": "ImageButton",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          48,
+          156,
+          216,
+          324
+        ]
+      },
+      {
+        "id": 4,
+        "desc": "Fix connectivity",
+        "cls": "Button",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1136,
+          168,
+          1280,
+          312
+        ]
+      },
+      {
+        "id": 5,
+        "text": "Mobile data",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          405,
+          1232,
+          462
+        ]
+      },
+      {
+        "id": 6,
+        "label": "T-Mobile · 5G · Settings",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          492,
+          1280,
+          710
+        ]
+      },
+      {
+        "id": 7,
+        "desc": "Settings",
+        "view_id": "settings_button",
+        "cls": "ImageView",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1040,
+          492,
+          1184,
+          710
+        ]
+      },
+      {
+        "id": 8,
+        "text": "Wi‑Fi",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          788,
+          1232,
+          845
+        ]
+      },
+      {
+        "id": 9,
+        "label": "Use Wi‑Fi",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          875,
+          1280,
+          1091
+        ]
+      },
+      {
+        "id": 10,
+        "view_id": "switchWidget",
+        "cls": "Switch",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "checked": true,
+        "bounds": [
+          1028,
+          911,
+          1184,
+          1055
+        ]
+      },
+      {
+        "id": 11,
+        "desc": "AndroidWifi,Connected,Wifi signal full.,Open network",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1097,
+          1280,
+          1315
+        ]
+      },
+      {
+        "id": 12,
+        "desc": "Settings",
+        "view_id": "settings_button",
+        "cls": "ImageView",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          1040,
+          1097,
+          1184,
+          1315
+        ]
+      },
+      {
+        "id": 13,
+        "text": "AndroidWifi",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          252,
+          1145,
+          501,
+          1210
+        ]
+      },
+      {
+        "id": 14,
+        "text": "Connected",
+        "view_id": "summary",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          252,
+          1210,
+          453,
+          1267
+        ]
+      },
+      {
+        "id": 15,
+        "text": "Networks",
+        "view_id": "title",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          72,
+          1393,
+          1232,
+          1450
+        ]
+      },
+      {
+        "id": 16,
+        "text": "Searching for networks…",
+        "view_id": "summary",
+        "cls": "TextView",
+        "clickable": false,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          96,
+          1559,
+          555,
+          1616
+        ]
+      },
+      {
+        "id": 17,
+        "label": "Add network",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1702,
+          1280,
+          1918
+        ]
+      },
+      {
+        "id": 18,
+        "label": "Network preferences · Wi‑Fi doesn't turn back on automatical",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          1966,
+          1280,
+          2184
+        ]
+      },
+      {
+        "id": 19,
+        "label": "Saved networks · 1 network",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2190,
+          1280,
+          2408
+        ]
+      },
+      {
+        "id": 20,
+        "label": "Non-carrier data usage · 1.95 GB used Sep 16 – Oct 14",
+        "cls": "View",
+        "clickable": true,
+        "editable": false,
+        "scrollable": false,
+        "bounds": [
+          0,
+          2414,
+          1280,
+          2632
+        ]
+      }
+    ]
+  },
+  "captured_at_ms": 1791927843927,
+  "read_ms": 23
+}
