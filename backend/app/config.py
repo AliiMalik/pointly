@@ -15,11 +15,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    llm_provider: str = "gemini"  # "mock" = keyword planner for development, no API key
     gemini_api_key: str = ""
     llm_model: str = ""
     stt_model: str = ""
+    llm_thinking: str = "low"  # Gemini 3 thinking level; "low" keeps planner latency down
     google_application_credentials: str = ""
     tts_model: str = ""
+    tts_voice: str = "Kore"
     rehnuma_app_key: str = "change-me"
     log_dir: Path = BACKEND_DIR / "logs"
     log_screens: bool = False

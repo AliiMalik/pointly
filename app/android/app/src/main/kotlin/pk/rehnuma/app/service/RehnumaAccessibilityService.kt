@@ -19,6 +19,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pk.rehnuma.app.config.AppConfig
+import pk.rehnuma.app.net.PlanRequest
+import pk.rehnuma.app.net.PlannerClient
+import pk.rehnuma.app.net.toApi
+import pk.rehnuma.app.screen.GuardResult
+import pk.rehnuma.app.screen.SafetyGuard
 import pk.rehnuma.app.overlay.BubbleOverlay
 import pk.rehnuma.app.overlay.BubbleState
 import pk.rehnuma.app.overlay.DebugBoxesOverlay
@@ -42,6 +47,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var bubble: BubbleOverlay
     private lateinit var pointer: PointerOverlay
     private lateinit var panel: QuickPanel
+    private lateinit var planner: PlannerClient
     private var config = AppConfig()
     private var bubbleVisible = false
     private var sessionActive = false
@@ -60,6 +66,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         pointer = PointerOverlay(this)
         bubble = BubbleOverlay(this, bubbleListener)
         panel = QuickPanel(this, panelListener)
+        planner = PlannerClient({ config })
         instance = this
         Log.i(TAG, "service connected")
         if (config.debugBoxes) setDebugBoxes(true)
@@ -206,7 +213,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     private val panelListener = object : QuickPanel.Listener {
         override fun onGoal(goal: String) {
-            pointer.showCaption(goal, urduScript = false)
+            planFirstStep(goal)
         }
 
         override fun onDebugPoint(elementId: Int) {
@@ -237,6 +244,39 @@ class RehnumaAccessibilityService : AccessibilityService() {
     }
 
     fun isBubbleVisible(): Boolean = bubbleVisible
+
+    /** Phase 3 one-shot: typed goal -> screen -> /v1/plan -> pointer. */
+    private fun planFirstStep(goal: String) {
+        scope.launch {
+            bubble.state = BubbleState.THINKING
+            delay(400)
+            val snapshot = readScreen()
+            if (snapshot == null || SafetyGuard.check(snapshot) is GuardResult.Sensitive) {
+                bubble.state = BubbleState.PAUSED
+                pointer.showCaption("Yeh screen aap khud bharein. Main ise nahi dekhti.", urduScript = false)
+                return@launch
+            }
+            val req = PlanRequest(sessionId = "manual", goalText = goal, stepIndex = 1, screen = snapshot.toApi())
+            when (val r = planner.plan(req)) {
+                is PlannerClient.Result.Failed -> {
+                    bubble.state = BubbleState.ERROR
+                    pointer.showCaption("${r.failure}: ${r.message}", urduScript = false)
+                }
+                is PlannerClient.Result.Ok -> {
+                    bubble.state = BubbleState.IDLE
+                    bubble.showClose = true
+                    val e = r.value.elementId?.let { snapshot.element(it) }
+                    pointer.show(
+                        e?.let { PointerTarget.Element(it.bounds) },
+                        r.value.sayRoman,
+                        urduScript = false,
+                        from = bubble.bubbleCenterOnScreen(),
+                    )
+                    Log.i(TAG, "plan ${r.value.action} #${r.value.elementId} in ${r.ms} ms")
+                }
+            }
+        }
+    }
 
     fun startQuickTask(goal: String) {
         if (!bubbleVisible) showBubble()

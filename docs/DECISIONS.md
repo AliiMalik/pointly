@@ -47,6 +47,17 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Testing note:** `adb shell uiautomator dump` (and anything else using UiAutomation) makes Android suppress every other accessibility service while it runs. Rehnuma is unbound, its overlays disappear, and it rebinds a second later. Don't use UI dumps while testing overlays; use screenshots.
 - **Emulator check:** bubble stays on top of Settings; `#13` points exactly at "Display size & text"; tapping through the pointer overlay opens that screen (A1 touch pass-through).
 
+## Phase 3: Plan (2026-10-14)
+
+- **Models** (checked against Google's model list on 2026-10-14): `LLM_MODEL=gemini-3.8-flash` (current stable Flash) with `LLM_THINKING=low` for latency; `STT_MODEL=gemini-3.8-flash` (accepts audio). Gemini 2.5 models are now restricted to existing users. If planner p50 is above 2 s on the venue network, try `gemini-3.5-flash-lite`. TTS: Cloud Text-to-Speech `gemini-2.5-flash-tts`, voice `Kore`, `ur-PK` (Urdu is a *preview* language for Gemini-TTS; the 3.8 TTS models are not offered through Cloud TTS).
+- **Provider interface** takes a list of turns, `plan(system, turns, schema)`, instead of one user string, so the two few-shot examples and the single corrective retry are real conversation turns (SPEC 6.5 deviation).
+- **Validation** (SPEC 6.4 step 5): action in the enum; `element_id` required and on screen for tap/type/scroll, forced to null otherwise; `scroll_direction` required for scroll; `say_roman` 1–12 words, `say_urdu` 1–16 whitespace tokens (Urdu script often writes one word with inner spaces, e.g. "واٹس ایپ"); no ids/"element"/"node" in spoken text. `goal_key` is slugified, confidence clamped and reason cut to 25 words rather than rejected.
+- **Retry budget**: one LLM call times out at 6.5 s; the corrective retry only runs if at least 2 s of a 7.5 s budget remain, so the phone's 8 s read timeout is not exceeded. If the LLM is unreachable the API returns **503** (the phone retries once, then says NETWORK_SLOW). Two invalid answers return `cant_help` with HTTP 200.
+- **Masking on the server** covers the goal text, history and window title as well as element strings.
+- **Mock planner** (`LLM_PROVIDER=mock`) is a keyword matcher for development and offline rehearsal only; `/v1/health` reports `"model": "mock"` so it can't be mistaken for the real one.
+- **PlannerClient** retries exactly once (OkHttp's own connection retry is off) on timeout, connection failure or 5xx, never on 401/4xx. Cancelling the session cancels the HTTP call. Uploads leave out default values (false flags) to keep requests small.
+- **Emulator check**: with the mock backend on the host (`http://10.0.2.2:8000`), typing "YouTube dekhna hai" on the home screen put the hand on the YouTube icon; the phone measured 849 ms for the call. Real Gemini accuracy and latency still need a `GEMINI_API_KEY`.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_
