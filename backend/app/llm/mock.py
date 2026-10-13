@@ -5,6 +5,7 @@ most keywords with the goal. Good enough to exercise the phone's guidance loop o
 substitute for the real planner.
 """
 
+import os
 import re
 
 from pydantic import BaseModel
@@ -74,4 +75,5 @@ class MockProvider:
         }
 
     async def transcribe(self, audio: bytes, mime: str) -> dict:
-        return {"text_urdu": "", "text_roman": ""}
+        # MOCK_STT_TEXT lets you rehearse the spoken flow on an emulator without a microphone.
+        return {"text_urdu": "", "text_roman": os.environ.get("MOCK_STT_TEXT", "")}

@@ -6,8 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
-import android.os.Handler
-import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
@@ -40,8 +38,10 @@ import pk.rehnuma.app.session.GuidanceSession
 import pk.rehnuma.app.session.ScreenEvent
 import pk.rehnuma.app.session.SessionState
 import pk.rehnuma.app.session.SessionUi
-import pk.rehnuma.app.session.SessionVoice
 import pk.rehnuma.app.session.SourceInfo
+import pk.rehnuma.app.voice.SpeechInput
+import pk.rehnuma.app.voice.SpeechOutput
+import pk.rehnuma.app.voice.SpeechResult
 
 /**
  * Entry point of the Kotlin core (SPEC 5.1). Reads the screen only while a guidance session is
@@ -58,6 +58,8 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var panel: QuickPanel
     private lateinit var planner: PlannerClient
     private lateinit var session: GuidanceSession
+    private lateinit var speechOut: SpeechOutput
+    private lateinit var speechIn: SpeechInput
     private var config = AppConfig()
     private var bubbleVisible = false
     private var debugRefresh: Job? = null
@@ -76,12 +78,14 @@ class RehnumaAccessibilityService : AccessibilityService() {
         bubble = BubbleOverlay(this, bubbleListener)
         panel = QuickPanel(this, panelListener)
         planner = PlannerClient({ config })
+        speechOut = SpeechOutput(this, { config }, planner, scope)
+        speechIn = SpeechInput(this, { config }, planner, scope)
         session = GuidanceSession(
             scope = scope,
             screen = { readScreen() },
             planner = { request, onRetry -> planner.plan(request, onRetry) },
             ui = sessionUi,
-            voice = captionVoice,
+            voice = speechOut,
             config = { config },
             ownPackage = packageName,
             clock = { SystemClock.uptimeMillis() },
@@ -156,7 +160,9 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     private fun teardown() {
         if (instance === this) instance = null
+        if (::speechIn.isInitialized) speechIn.cancel()
         if (::session.isInitialized) session.cancel()
+        if (::speechOut.isInitialized) speechOut.shutdown()
         bubbleVisible = false
         if (::debugBoxes.isInitialized) debugBoxes.hide()
         if (::pointer.isInitialized) pointer.hideAll()
@@ -201,41 +207,58 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
         override fun clear() = pointer.hideAll()
 
-        override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) =
+        override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) {
+            Log.d(TAG, "state $state step=$step${error?.let { " error=$it" } ?: ""}") // never screen text
             RehnumaEvents.emit(state.name, goalText, step, captionRoman, error)
-    }
-
-    /** Phase 4 stand-in for speech: captions only, "done" after a reading-time estimate. */
-    private val captionVoice = object : SessionVoice {
-        private val handler = Handler(Looper.getMainLooper())
-
-        override fun speak(urdu: String, roman: String, onDone: () -> Unit) {
-            handler.postDelayed({ onDone() }, (roman.length * 60L).coerceIn(1200L, 4000L))
         }
-
-        override fun stop() = handler.removeCallbacksAndMessages(null)
     }
 
     // ---- Bubble and panel ----
 
+    /** SPEC 5.8 gestures; see docs/DECISIONS.md (Phase 2) for how Hold and Tap mode differ. */
     private val bubbleListener = object : BubbleOverlay.Listener {
+        private val tapMode get() = config.talkMode == AppConfig.TALK_TAP
+
         override fun onHoldStart() {
-            bubble.state = BubbleState.LISTENING
+            if (!tapMode) startListening()
         }
 
         override fun onHoldEnd() {
-            // Voice input arrives in Phase 5; until then a hold opens the text box.
-            bubble.state = BubbleState.IDLE
-            panel.show()
+            if (!tapMode) speechIn.stop()
         }
 
         override fun onTap() {
-            if (session.state == SessionState.IDLE) panel.show() else session.onBubbleTap()
+            when {
+                tapMode && speechIn.isListening -> speechIn.stop()
+                tapMode && session.state in TAP_TO_TALK_STATES -> startListening()
+                session.state == SessionState.IDLE -> panel.show()
+                else -> session.onBubbleTap()
+            }
         }
 
-        override fun onLongPress() {}
+        override fun onLongPress() {
+            if (tapMode && session.state == SessionState.IDLE) panel.show()
+        }
 
-        override fun onClose() = session.cancel()
+        override fun onClose() {
+            speechIn.cancel()
+            session.cancel()
+        }
+    }
+
+    private fun startListening() {
+        if (!bubbleVisible) return
+        session.listeningStarted()
+        speechIn.start(object : SpeechInput.Listener {
+            override fun onPartial(text: String) = session.speechPartial(text)
+
+            override fun onTranscribing() = session.transcribing()
+
+            override fun onResult(result: SpeechResult) {
+                if (result.error == "microphone permission") toast("Mic ki ijazat dein (Rehnuma app → Ijazatein)")
+                session.speechResult(result.bestText)
+            }
+        })
     }
 
     private val panelListener = object : QuickPanel.Listener {
@@ -328,10 +351,12 @@ class RehnumaAccessibilityService : AccessibilityService() {
         bubbleVisible = true
         bubble.show()
         notification.show()
+        speechOut.prewarm()
     }
 
     fun hideBubble() {
         Log.i(TAG, "hideBubble")
+        speechIn.cancel()
         session.cancel()
         bubbleVisible = false
         pointer.hideAll()
@@ -357,6 +382,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "Rehnuma"
         private const val PANEL_CLOSE_MS = 400L
+        private val TAP_TO_TALK_STATES = setOf(SessionState.IDLE, SessionState.ASKING, SessionState.COMPLETED)
 
         @Volatile
         var instance: RehnumaAccessibilityService? = null

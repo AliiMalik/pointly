@@ -72,6 +72,61 @@ class GuidanceSession(
 
     // ---------------------------------------------------------------- inputs
 
+    private var beforeListening: SessionState = SessionState.IDLE
+
+    /** The bubble is held (or tapped in Tap mode): stop talking and listen (SPEC 5.5 -> LISTENING). */
+    fun listeningStarted() {
+        beforeListening = if (state == SessionState.LISTENING || state == SessionState.TRANSCRIBING) beforeListening else state
+        cancelJobs()
+        voice.stop()
+        ui.clear()
+        step = null
+        setState(SessionState.LISTENING)
+        ui.bubble(BubbleState.LISTENING, showClose = true)
+        ui.caption(caption(Phrase.ASK_GOAL.urdu, Phrase.ASK_GOAL.roman))
+    }
+
+    /** Words recognized so far, shown while listening (SPEC 5.10). */
+    fun speechPartial(text: String) {
+        if (state == SessionState.LISTENING) ui.caption(text)
+    }
+
+    /** Cloud fallback is uploading the recording. */
+    fun transcribing() {
+        if (state != SessionState.LISTENING) return
+        setState(SessionState.TRANSCRIBING)
+        ui.bubble(BubbleState.THINKING, showClose = true)
+    }
+
+    /** Speech finished. Blank: DIDNT_HEAR and back to what was happening. Otherwise a goal or an answer. */
+    fun speechResult(text: String?) {
+        if (state != SessionState.LISTENING && state != SessionState.TRANSCRIBING) return
+        val previous = beforeListening
+        if (text.isNullOrBlank()) {
+            ui.caption(caption(Phrase.DIDNT_HEAR.urdu, Phrase.DIDNT_HEAR.roman))
+            say(Phrase.DIDNT_HEAR)
+            when {
+                previous == SessionState.ASKING -> {
+                    setState(SessionState.ASKING)
+                    ui.bubble(BubbleState.IDLE, showClose = true)
+                }
+                goalText.isNotEmpty() && previous != SessionState.IDLE && previous != SessionState.COMPLETED ->
+                    runFlow { planFromScreen(fromNow = false) } // pick the guidance up again
+                else -> {
+                    setState(SessionState.IDLE)
+                    ui.bubble(BubbleState.IDLE, showClose = false)
+                    scope.launch {
+                        delay(END_LINGER_MS * 2)
+                        if (state == SessionState.IDLE) ui.clear()
+                    }
+                }
+            }
+            return
+        }
+        if (previous == SessionState.ASKING) state = SessionState.ASKING
+        submitGoal(text)
+    }
+
     /** A goal from speech, a quick task or the text box. While ASKING it is the answer instead. */
     fun submitGoal(text: String) {
         val goal = text.trim()
@@ -91,6 +146,9 @@ class GuidanceSession(
         _history.clear()
         step = null
         lastSaid = null
+        // SPEC 4 step 3: "Ek second, dekh rahi hoon" while the screen is read and planned.
+        ui.caption(caption(Phrase.THINKING.urdu, Phrase.THINKING.roman))
+        say(Phrase.THINKING)
         runFlow { planFromScreen(fromNow = false) }
     }
 

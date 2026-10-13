@@ -451,4 +451,70 @@ class GuidanceSessionTest {
         assertEquals("اسے دبائیں", r.ui.points.last().second)
         assertEquals("urdu", r.planner.requests[0].prefs.caption)
     }
+
+    // ---------------------------------------------------------------- voice (Phase 5)
+
+    @Test fun spokenGoalStartsSessionAndSaysThinking() = runTest {
+        val r = rig(launcher)
+        r.planner.then(tap(1))
+        r.session.listeningStarted()
+        assertEquals(SessionState.LISTENING, r.session.state)
+        assertEquals(BubbleState.LISTENING, r.ui.bubble)
+        r.session.speechPartial("WhatsApp")
+        assertEquals("WhatsApp", r.ui.captions.last())
+        r.session.speechResult("WhatsApp pe photo bhejni hai")
+        runCurrent()
+        assertTrue(r.voice.said.contains(Phrase.THINKING.roman))
+        assertEquals("WhatsApp pe photo bhejni hai", r.planner.requests.single().goalText)
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+    }
+
+    @Test fun silenceFromIdleSaysDidntHearAndStaysIdle() = runTest {
+        val r = rig(launcher)
+        r.session.listeningStarted()
+        r.session.transcribing()
+        assertEquals(SessionState.TRANSCRIBING, r.session.state)
+        r.session.speechResult("  ")
+        runCurrent()
+        assertEquals(SessionState.IDLE, r.session.state)
+        assertTrue(r.voice.said.contains(Phrase.DIDNT_HEAR.roman))
+        assertEquals(0, r.planner.requests.size)
+    }
+
+    @Test fun spokenAnswerWhileAsking() = runTest {
+        val r = rig(chats)
+        r.planner.then(plan("ask", "Kis ko bhejni hai?"))
+        r.planner.then(tap(2))
+        r.session.submitGoal("Photo bhejni hai")
+        runCurrent()
+        r.session.listeningStarted()
+        r.session.speechResult("Sara ko")
+        runCurrent()
+        assertEquals("Photo bhejni hai\nUser answer: Sara ko", r.planner.requests[1].goalText)
+        assertEquals("s1", r.planner.requests[1].sessionId)
+    }
+
+    @Test fun silenceWhileAskingKeepsAsking() = runTest {
+        val r = rig(chats)
+        r.planner.then(plan("ask", "Kis ko bhejni hai?"))
+        r.session.submitGoal("Photo bhejni hai")
+        runCurrent()
+        r.session.listeningStarted()
+        r.session.speechResult(null)
+        assertEquals(SessionState.ASKING, r.session.state)
+    }
+
+    @Test fun silenceDuringGuidanceResumesSameGoal() = runTest {
+        val r = rig(launcher)
+        r.planner.then(tap(1))
+        r.planner.then(tap(1))
+        r.session.submitGoal("WhatsApp")
+        runCurrent()
+        r.session.listeningStarted()
+        r.session.speechResult("")
+        runCurrent()
+        assertEquals(2, r.planner.requests.size)
+        assertEquals("WhatsApp", r.planner.requests[1].goalText)
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+    }
 }

@@ -1,7 +1,10 @@
 package pk.rehnuma.app.net
 
 import android.os.SystemClock
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.ConnectionPool
@@ -22,6 +25,7 @@ class PlannerClient(
     private val config: () -> AppConfig,
     private val http: OkHttpClient = defaultHttp(),
     private val clock: () -> Long = { SystemClock.elapsedRealtime() },
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     enum class Failure { NETWORK, SERVER, AUTH, BAD_REQUEST }
 
@@ -53,19 +57,21 @@ class PlannerClient(
     /** POST /v1/tts; returns WAV bytes (SPEC 6.7). */
     suspend fun tts(textUrdu: String): Result<ByteArray> {
         val body = ApiJson.encodeToString(TtsRequest.serializer(), TtsRequest(textUrdu))
-        return send("/v1/tts", { body.toRequestBody(jsonType) }, {}) { r -> r.body!!.bytes() }
+        // No retry: a 503 here means the cloud voice is not set up, and captions are enough.
+        return send("/v1/tts", { body.toRequestBody(jsonType) }, {}, attempts = 1) { r -> r.body!!.bytes() }
     }
 
     private suspend fun <T> send(
         path: String,
         body: () -> RequestBody,
         onRetry: () -> Unit,
+        attempts: Int = 2,
         parse: (Response) -> T,
     ): Result<T> {
         val start = clock()
         var last: Result.Failed? = null
-        for (attempt in 0..1) {
-            if (attempt == 1) onRetry()
+        for (attempt in 0 until attempts) {
+            if (attempt == 1) onRetry() // on the caller's thread: it may touch the UI
             val cfg = config()
             val request = try {
                 Request.Builder()
@@ -76,22 +82,30 @@ class PlannerClient(
             } catch (e: IllegalArgumentException) {
                 return Result.Failed(Failure.BAD_REQUEST, "bad backend URL: ${cfg.baseUrl}", clock() - start)
             }
-            try {
-                http.newCall(request).await().use { r ->
-                    when {
-                        r.isSuccessful -> return try {
-                            Result.Ok(parse(r), clock() - start)
-                        } catch (e: Exception) {
-                            Result.Failed(Failure.SERVER, "bad response: ${e.message}", clock() - start)
+            // The call and the body read both happen off the main thread (the body may still be
+            // arriving when the headers are in).
+            val outcome: Result<T> = withContext(io) {
+                try {
+                    http.newCall(request).await().use { r ->
+                        when {
+                            r.isSuccessful -> try {
+                                Result.Ok(parse(r), clock() - start)
+                            } catch (e: Exception) {
+                                Result.Failed(Failure.SERVER, "bad response: ${e.javaClass.simpleName} ${e.message}", clock() - start)
+                            }
+                            r.code == 401 -> Result.Failed(Failure.AUTH, "wrong app key", clock() - start)
+                            r.code in 400..499 -> Result.Failed(Failure.BAD_REQUEST, "HTTP ${r.code}", clock() - start)
+                            else -> Result.Failed(Failure.SERVER, "HTTP ${r.code}", clock() - start)
                         }
-                        r.code == 401 -> return Result.Failed(Failure.AUTH, "wrong app key", clock() - start)
-                        r.code in 400..499 -> return Result.Failed(Failure.BAD_REQUEST, "HTTP ${r.code}", clock() - start)
-                        else -> last = Result.Failed(Failure.SERVER, "HTTP ${r.code}", clock() - start)
                     }
+                } catch (e: IOException) {
+                    Result.Failed(Failure.NETWORK, e.message ?: e.javaClass.simpleName, clock() - start)
                 }
-            } catch (e: IOException) {
-                last = Result.Failed(Failure.NETWORK, e.message ?: e.javaClass.simpleName, clock() - start)
             }
+            val retryable = outcome is Result.Failed &&
+                (outcome.failure == Failure.NETWORK || (outcome.failure == Failure.SERVER && outcome.message.startsWith("HTTP")))
+            if (!retryable) return outcome
+            last = outcome as Result.Failed
         }
         return last!!
     }
