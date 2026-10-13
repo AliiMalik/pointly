@@ -5,6 +5,10 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -18,21 +22,26 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pk.rehnuma.app.bridge.RehnumaEvents
 import pk.rehnuma.app.config.AppConfig
-import pk.rehnuma.app.net.PlanRequest
 import pk.rehnuma.app.net.PlannerClient
-import pk.rehnuma.app.net.toApi
-import pk.rehnuma.app.screen.GuardResult
-import pk.rehnuma.app.screen.SafetyGuard
 import pk.rehnuma.app.overlay.BubbleOverlay
 import pk.rehnuma.app.overlay.BubbleState
 import pk.rehnuma.app.overlay.DebugBoxesOverlay
 import pk.rehnuma.app.overlay.PointerOverlay
 import pk.rehnuma.app.overlay.PointerTarget
 import pk.rehnuma.app.overlay.QuickPanel
+import pk.rehnuma.app.screen.Labels
 import pk.rehnuma.app.screen.ScreenReader
 import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.screen.SnapshotSaver
+import pk.rehnuma.app.screen.recycleCompat
+import pk.rehnuma.app.session.GuidanceSession
+import pk.rehnuma.app.session.ScreenEvent
+import pk.rehnuma.app.session.SessionState
+import pk.rehnuma.app.session.SessionUi
+import pk.rehnuma.app.session.SessionVoice
+import pk.rehnuma.app.session.SourceInfo
 
 /**
  * Entry point of the Kotlin core (SPEC 5.1). Reads the screen only while a guidance session is
@@ -48,9 +57,9 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var pointer: PointerOverlay
     private lateinit var panel: QuickPanel
     private lateinit var planner: PlannerClient
+    private lateinit var session: GuidanceSession
     private var config = AppConfig()
     private var bubbleVisible = false
-    private var sessionActive = false
     private var debugRefresh: Job? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -67,15 +76,66 @@ class RehnumaAccessibilityService : AccessibilityService() {
         bubble = BubbleOverlay(this, bubbleListener)
         panel = QuickPanel(this, panelListener)
         planner = PlannerClient({ config })
+        session = GuidanceSession(
+            scope = scope,
+            screen = { readScreen() },
+            planner = { request, onRetry -> planner.plan(request, onRetry) },
+            ui = sessionUi,
+            voice = captionVoice,
+            config = { config },
+            ownPackage = packageName,
+            clock = { SystemClock.uptimeMillis() },
+        )
         instance = this
         Log.i(TAG, "service connected")
         if (config.debugBoxes) setDebugBoxes(true)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null || !::session.isInitialized) return
+        val active = session.isActive
         // Rule 4: ignore everything unless the user started a session (or turned on the debug overlay).
-        if (event == null || !(sessionActive || debugBoxes.isShowing)) return
+        if (!active && !debugBoxes.isShowing) return
         if (debugBoxes.isShowing) scheduleDebugRefresh()
+        if (!active) return
+        val type = when (event.eventType) {
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> ScreenEvent.Type.CLICKED
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> ScreenEvent.Type.TEXT_CHANGED
+            AccessibilityEvent.TYPE_VIEW_FOCUSED -> ScreenEvent.Type.FOCUSED
+            AccessibilityEvent.TYPE_VIEW_SCROLLED -> ScreenEvent.Type.SCROLLED
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> ScreenEvent.Type.WINDOW_STATE
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> ScreenEvent.Type.WINDOW_CONTENT
+            else -> return // TYPE_WINDOWS_CHANGED also fires for our own overlays; reads catch real changes
+        }
+        val pkg = event.packageName?.toString()
+        val source = if (type == ScreenEvent.Type.WINDOW_STATE || type == ScreenEvent.Type.WINDOW_CONTENT || pkg == packageName) {
+            null
+        } else {
+            sourceInfo(event)
+        }
+        session.onEvent(ScreenEvent(type, pkg, event.windowId, source))
+    }
+
+    /** Just enough of the event's node to match it against the target; the node is released at once. */
+    private fun sourceInfo(event: AccessibilityEvent): SourceInfo? {
+        val node = try {
+            event.source
+        } catch (_: RuntimeException) {
+            null
+        } ?: return null
+        return try {
+            val r = Rect()
+            node.getBoundsInScreen(r)
+            val text = if (node.isShowingHintText) null else node.text
+            SourceInfo(
+                viewId = node.viewIdResourceName?.substringAfter(":id/"),
+                label = Labels.normalize(ScreenReader.clean(text ?: node.contentDescription)),
+                bounds = if (r.isEmpty) null else listOf(r.left, r.top, r.right, r.bottom),
+                editable = node.isEditable,
+            )
+        } finally {
+            node.recycleCompat()
+        }
     }
 
     override fun onInterrupt() {
@@ -96,7 +156,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     private fun teardown() {
         if (instance === this) instance = null
-        sessionActive = false
+        if (::session.isInitialized) session.cancel()
         bubbleVisible = false
         if (::debugBoxes.isInitialized) debugBoxes.hide()
         if (::pointer.isInitialized) pointer.hideAll()
@@ -104,6 +164,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         if (::bubble.isInitialized) bubble.hide()
         if (::notification.isInitialized) notification.release()
         if (::scope.isInitialized) scope.cancel()
+        RehnumaEvents.emit(SessionState.IDLE.name)
     }
 
     /** Reads the current screen off the main thread. */
@@ -113,6 +174,103 @@ class RehnumaAccessibilityService : AccessibilityService() {
         } catch (e: RuntimeException) {
             Log.w(TAG, "screen read failed", e)
             null
+        }
+    }
+
+    // ---- Session ports ----
+
+    private val sessionUi = object : SessionUi {
+        override fun bubble(state: BubbleState, showClose: Boolean) {
+            if (!bubbleVisible) return
+            bubble.state = state
+            bubble.showClose = showClose
+        }
+
+        override fun point(target: PointerTarget, caption: String?, withHand: Boolean, onArrived: () -> Unit) {
+            pointer.show(
+                target, caption, urduScript = config.caption == AppConfig.CAPTION_URDU,
+                from = bubble.bubbleCenterOnScreen(), withHand = withHand, onArrived = onArrived,
+            )
+        }
+
+        override fun caption(text: String?) {
+            if (text == null) pointer.hideAll() else pointer.showCaption(text, config.caption == AppConfig.CAPTION_URDU)
+        }
+
+        override fun revealHand() = pointer.revealHand(bubble.bubbleCenterOnScreen())
+
+        override fun clear() = pointer.hideAll()
+
+        override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) =
+            RehnumaEvents.emit(state.name, goalText, step, captionRoman, error)
+    }
+
+    /** Phase 4 stand-in for speech: captions only, "done" after a reading-time estimate. */
+    private val captionVoice = object : SessionVoice {
+        private val handler = Handler(Looper.getMainLooper())
+
+        override fun speak(urdu: String, roman: String, onDone: () -> Unit) {
+            handler.postDelayed({ onDone() }, (roman.length * 60L).coerceIn(1200L, 4000L))
+        }
+
+        override fun stop() = handler.removeCallbacksAndMessages(null)
+    }
+
+    // ---- Bubble and panel ----
+
+    private val bubbleListener = object : BubbleOverlay.Listener {
+        override fun onHoldStart() {
+            bubble.state = BubbleState.LISTENING
+        }
+
+        override fun onHoldEnd() {
+            // Voice input arrives in Phase 5; until then a hold opens the text box.
+            bubble.state = BubbleState.IDLE
+            panel.show()
+        }
+
+        override fun onTap() {
+            if (session.state == SessionState.IDLE) panel.show() else session.onBubbleTap()
+        }
+
+        override fun onLongPress() {}
+
+        override fun onClose() = session.cancel()
+    }
+
+    private val panelListener = object : QuickPanel.Listener {
+        override fun onGoal(goal: String) = startGoal(goal)
+
+        override fun onDebugPoint(elementId: Int) {
+            session.cancel()
+            scope.launch {
+                delay(400) // let the panel close and the app below settle
+                val e = readScreen()?.element(elementId)
+                if (e == null) {
+                    toast("#$elementId nahi mila")
+                    return@launch
+                }
+                bubble.showClose = true
+                pointer.show(
+                    PointerTarget.Element(e.bounds), "#${e.id} ${e.displayLabel ?: e.cls}",
+                    urduScript = false, from = bubble.bubbleCenterOnScreen(),
+                )
+            }
+        }
+
+        override fun onSnapshot() {
+            scope.launch {
+                delay(400)
+                saveSnapshotNow()
+            }
+        }
+    }
+
+    private fun startGoal(goal: String) {
+        pointer.hideAll()
+        scope.launch {
+            delay(PANEL_CLOSE_MS) // the panel or keyboard must be gone before the screen is read
+            session.submitGoal(goal)
         }
     }
 
@@ -148,7 +306,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     suspend fun saveSnapshotNow() {
         val snapshot = readScreen()
-        if (snapshot == null) {
+        if (snapshot == null || snapshot.packageName == packageName) {
             toast("Koi screen nahi mili")
             return
         }
@@ -174,7 +332,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     fun hideBubble() {
         Log.i(TAG, "hideBubble")
-        sessionActive = false
+        session.cancel()
         bubbleVisible = false
         pointer.hideAll()
         panel.hide()
@@ -182,104 +340,11 @@ class RehnumaAccessibilityService : AccessibilityService() {
         notification.hide()
     }
 
-    // ---- Bubble and panel (Phase 2: manual pointing) ----
-
-    private val bubbleListener = object : BubbleOverlay.Listener {
-        override fun onHoldStart() {
-            bubble.state = BubbleState.LISTENING
-        }
-
-        override fun onHoldEnd() {
-            bubble.state = BubbleState.IDLE
-        }
-
-        override fun onTap() {
-            if (pointer.isShowing) {
-                pointer.hideAll()
-                bubble.showClose = false
-            } else {
-                panel.show()
-            }
-        }
-
-        override fun onLongPress() {}
-
-        override fun onClose() {
-            pointer.hideAll()
-            bubble.showClose = false
-            bubble.state = BubbleState.IDLE
-        }
-    }
-
-    private val panelListener = object : QuickPanel.Listener {
-        override fun onGoal(goal: String) {
-            planFirstStep(goal)
-        }
-
-        override fun onDebugPoint(elementId: Int) {
-            scope.launch {
-                delay(400) // let the panel close and the app below settle
-                val snapshot = readScreen()
-                val e = snapshot?.element(elementId)
-                if (e == null) {
-                    toast("#$elementId nahi mila")
-                    return@launch
-                }
-                bubble.showClose = true
-                pointer.show(
-                    PointerTarget.Element(e.bounds),
-                    "#${e.id} ${e.displayLabel ?: e.cls}",
-                    urduScript = false,
-                    from = bubble.bubbleCenterOnScreen(),
-                )
-            }
-        }
-
-        override fun onSnapshot() {
-            scope.launch {
-                delay(400)
-                saveSnapshotNow()
-            }
-        }
-    }
-
     fun isBubbleVisible(): Boolean = bubbleVisible
-
-    /** Phase 3 one-shot: typed goal -> screen -> /v1/plan -> pointer. */
-    private fun planFirstStep(goal: String) {
-        scope.launch {
-            bubble.state = BubbleState.THINKING
-            delay(400)
-            val snapshot = readScreen()
-            if (snapshot == null || SafetyGuard.check(snapshot) is GuardResult.Sensitive) {
-                bubble.state = BubbleState.PAUSED
-                pointer.showCaption("Yeh screen aap khud bharein. Main ise nahi dekhti.", urduScript = false)
-                return@launch
-            }
-            val req = PlanRequest(sessionId = "manual", goalText = goal, stepIndex = 1, screen = snapshot.toApi())
-            when (val r = planner.plan(req)) {
-                is PlannerClient.Result.Failed -> {
-                    bubble.state = BubbleState.ERROR
-                    pointer.showCaption("${r.failure}: ${r.message}", urduScript = false)
-                }
-                is PlannerClient.Result.Ok -> {
-                    bubble.state = BubbleState.IDLE
-                    bubble.showClose = true
-                    val e = r.value.elementId?.let { snapshot.element(it) }
-                    pointer.show(
-                        e?.let { PointerTarget.Element(it.bounds) },
-                        r.value.sayRoman,
-                        urduScript = false,
-                        from = bubble.bubbleCenterOnScreen(),
-                    )
-                    Log.i(TAG, "plan ${r.value.action} #${r.value.elementId} in ${r.ms} ms")
-                }
-            }
-        }
-    }
 
     fun startQuickTask(goal: String) {
         if (!bubbleVisible) showBubble()
+        startGoal(goal)
     }
 
     fun onConfigChanged(newConfig: AppConfig) {
@@ -291,6 +356,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "Rehnuma"
+        private const val PANEL_CLOSE_MS = 400L
 
         @Volatile
         var instance: RehnumaAccessibilityService? = null

@@ -58,6 +58,21 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **PlannerClient** retries exactly once (OkHttp's own connection retry is off) on timeout, connection failure or 5xx, never on 401/4xx. Cancelling the session cancels the HTTP call. Uploads leave out default values (false flags) to keep requests small.
 - **Emulator check**: with the mock backend on the host (`http://10.0.2.2:8000`), typing "YouTube dekhna hai" on the home screen put the hand on the YouTube icon; the phone measured 849 ms for the call. Real Gemini accuracy and latency still need a `GEMINI_API_KEY`.
 
+## Phase 4: Guide loop (2026-10-14)
+
+- **Pure-Kotlin core.** `GuidanceSession`, `StepVerifier` and `SettleDetector` never touch Android types. The service turns each `AccessibilityEvent` into a `ScreenEvent` (type, package, window id, and for clicks/typing/scrolling the source's view id, masked label and bounds; the node is released immediately) and implements small `SessionUi`/`SessionVoice` ports with the overlays. 17 JVM tests drive the whole loop on virtual time.
+- `TYPE_WINDOWS_CHANGED` is not forwarded: it also fires whenever our own overlays appear. Events from `pk.rehnuma.app` are ignored too.
+- **Settle** (SPEC 5.6): after a tap or window change the 500 ms quiet period starts *now* (so the app has time to begin its transition); for the very first read a screen that is already quiet is read immediately. Hard cap 2.5 s.
+- **Tap verification** (SPEC 5.7): source bounds containing the target's centre is a match; a shared view id only matches if the labels agree (WhatsApp chat rows all share one id). A click with no source, or no click event at all, is judged by the next settled screen: window/package changed or target gone → progress (or deviation if a mismatched tap was seen); same screen after a mismatched tap → WRONG_TAP once per step.
+- **Deviation** stops the old instruction, says DEVIATION, records `outcome: deviated`, and plans from the new screen.
+- **Screen changed while planning**: the plan is checked against a fresh read; if the screen signature or window changed, the step is re-planned (up to 2 times) without counting an extra step.
+- **Rehnuma's own screen in front** (e.g. a quick task tapped on Home): the reader never reads our UI; the session shows a local "Home button dabayein ya neeche se upar swipe karein" step with the nav pointer, no planner call.
+- **`done`** says DONE ("Shabash! Kaam ho gaya.") unless the planner's sentence contains "khud" (the user must finish a PIN/payment themselves), in which case that sentence is said instead. `cant_help` and the 25-step limit say CANT_HELP and end.
+- **Errors** show plain Urdu/Roman Urdu captions ("Internet ka masla hai. Dobara koshish ke liye bubble dabayein.") with the ↻ badge; technical details only go to the Flutter status line.
+- **Phase 4 has no speech yet**: a caption-only voice stands in until Phase 5.
+- **Connection pool**: OkHttp drops idle connections after 4 s (uvicorn closes keep-alive at 5 s). On the emulator a dead pooled connection made one step wait for the full 8 s read timeout.
+- **Emulator run** (mock planner): quick task from Home → home-nav step → Home → launcher plan; tapping YouTube instead of the pointed Phone icon logged `history_outcomes: ["done", "deviated"]` and re-planned (A4); backend stopped → NETWORK_SLOW then ERROR with ↻, no crash; after restart a bubble tap retried the same step (A8); tapping the target moved to step 2 on the next screen (A3 with typed goal); × removed pointer and caption immediately (A7, bubble path).
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_

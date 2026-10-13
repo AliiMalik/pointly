@@ -291,7 +291,8 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
         }
 
         private fun drawNavArrow(c: Canvas, kind: String) {
-            val cx = width / 2f
+            // Beside the hand (which taps the bottom centre), not underneath it.
+            val cx = width / 2f - 110 * d
             val y = height - 120 * d
             path.reset()
             if (kind == "home") {

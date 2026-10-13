@@ -18,14 +18,14 @@ import android.view.accessibility.AccessibilityWindowInfo
  */
 class ScreenReader(private val service: AccessibilityService) {
 
-    private class Picked(val root: AccessibilityNodeInfo, val windowId: Int, val title: String?)
+    private class Picked(val root: AccessibilityNodeInfo?, val windowId: Int, val title: String?)
 
     private class Frame(val node: AccessibilityNodeInfo, val depth: Int, val covered: Set<String>)
 
     fun read(): ScreenSnapshot? {
         val start = SystemClock.elapsedRealtime()
         val picked = pickRoot() ?: return null
-        val root = picked.root
+        val root = picked.root ?: return ownAppSnapshot(start)
         try {
             val pkg = root.packageName?.toString() ?: return null
             val (width, height) = screenSize()
@@ -143,9 +143,11 @@ class ScreenReader(private val service: AccessibilityService) {
             }
             .sortedByDescending { it.layer }
 
+        var ownInFront = false
         fun tryWindow(w: AccessibilityWindowInfo): Picked? {
             val root = w.root ?: return null
             if (root.packageName?.toString() == own) {
+                if (w.type == AccessibilityWindowInfo.TYPE_APPLICATION && (w.isFocused || w.isActive)) ownInFront = true
                 root.recycleCompat()
                 return null
             }
@@ -157,9 +159,11 @@ class ScreenReader(private val service: AccessibilityService) {
             it.type == AccessibilityWindowInfo.TYPE_APPLICATION && (it.isFocused || it.isActive)
         }
         val apps = candidates.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
-        for (group in listOf(systemOnTop, activeApps, apps)) {
-            for (w in group) tryWindow(w)?.let { return it }
-        }
+        for (w in systemOnTop) tryWindow(w)?.let { return it }
+        for (w in activeApps) tryWindow(w)?.let { return it }
+        // Rehnuma's own screen is in front: never read it, just say so.
+        if (ownInFront) return OWN_APP
+        for (w in apps) tryWindow(w)?.let { return it }
 
         val fallback = service.rootInActiveWindow ?: return null
         if (fallback.packageName?.toString() == own) {
@@ -167,6 +171,19 @@ class ScreenReader(private val service: AccessibilityService) {
             return null
         }
         return Picked(fallback, fallback.windowId, null)
+    }
+
+    private fun ownAppSnapshot(start: Long): ScreenSnapshot {
+        val (width, height) = screenSize()
+        return ScreenSnapshot(
+            packageName = service.packageName,
+            screenWidth = width,
+            screenHeight = height,
+            elements = emptyList(),
+            signature = "own-app",
+            capturedAtMs = System.currentTimeMillis(),
+            readMs = SystemClock.elapsedRealtime() - start,
+        )
     }
 
     /** First 3 non-blank texts below an unlabeled clickable (SPEC 5.2). */
@@ -204,6 +221,9 @@ class ScreenReader(private val service: AccessibilityService) {
 
     companion object {
         private const val TAG = "RehnumaScreenReader"
+
+        /** Marker: Rehnuma's own activity is the active window. Its content is never read. */
+        private val OWN_APP = Picked(null, -1, null)
         const val MAX_DEPTH = 40
         const val MAX_NODES = 1500
         const val MAX_TEXT = 80

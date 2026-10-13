@@ -23,6 +23,7 @@ object TestScreens {
         vararg elements: ScreenElement,
         pkg: String = "com.example",
         hasPasswordField: Boolean = false,
+        windowId: Int = 1,
     ) = ScreenSnapshot(
         packageName = pkg,
         screenWidth = 1080,
@@ -32,5 +33,6 @@ object TestScreens {
         capturedAtMs = 0,
         readMs = 0,
         hasPasswordField = hasPasswordField,
+        windowId = windowId,
     )
 }

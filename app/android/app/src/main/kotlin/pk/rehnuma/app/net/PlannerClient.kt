@@ -4,6 +4,7 @@ import android.os.SystemClock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.ConnectionPool
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -100,7 +101,12 @@ class PlannerClient(
             .connectTimeout(3, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .writeTimeout(8, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(false) // retries are ours: exactly one (SPEC 5.12)
+            // Drop idle connections before uvicorn's 5 s keep-alive closes them: a NAT or tunnel may
+            // not pass the close on, and a dead pooled connection only fails after the 8 s read timeout.
+            .connectionPool(ConnectionPool(4, 4, TimeUnit.SECONDS))
+            // Lets OkHttp silently reconnect when a pooled connection turns out to be closed.
+            // Timeouts and 5xx still get exactly one retry from us (SPEC 5.12).
+            .retryOnConnectionFailure(true)
             .build()
     }
 }

@@ -172,6 +172,7 @@ class Planner:
             "latency_ms": latency_ms,
             "retried": retried,
             "valid": valid,
+            "history_outcomes": [h.outcome for h in req.history],
         }
         if error:
             record["error"] = error
