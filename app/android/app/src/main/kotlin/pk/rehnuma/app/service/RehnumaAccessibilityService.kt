@@ -19,7 +19,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pk.rehnuma.app.config.AppConfig
+import pk.rehnuma.app.overlay.BubbleOverlay
+import pk.rehnuma.app.overlay.BubbleState
 import pk.rehnuma.app.overlay.DebugBoxesOverlay
+import pk.rehnuma.app.overlay.PointerOverlay
+import pk.rehnuma.app.overlay.PointerTarget
+import pk.rehnuma.app.overlay.QuickPanel
 import pk.rehnuma.app.screen.ScreenReader
 import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.screen.SnapshotSaver
@@ -34,6 +39,9 @@ class RehnumaAccessibilityService : AccessibilityService() {
     private lateinit var notification: SessionNotification
     private lateinit var reader: ScreenReader
     private lateinit var debugBoxes: DebugBoxesOverlay
+    private lateinit var bubble: BubbleOverlay
+    private lateinit var pointer: PointerOverlay
+    private lateinit var panel: QuickPanel
     private var config = AppConfig()
     private var bubbleVisible = false
     private var sessionActive = false
@@ -49,7 +57,11 @@ class RehnumaAccessibilityService : AccessibilityService() {
         notification = SessionNotification(this) { hideBubble() }
         reader = ScreenReader(this)
         debugBoxes = DebugBoxesOverlay(this)
+        pointer = PointerOverlay(this)
+        bubble = BubbleOverlay(this, bubbleListener)
+        panel = QuickPanel(this, panelListener)
         instance = this
+        Log.i(TAG, "service connected")
         if (config.debugBoxes) setDebugBoxes(true)
     }
 
@@ -64,11 +76,13 @@ class RehnumaAccessibilityService : AccessibilityService() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        Log.i(TAG, "service unbound")
         teardown()
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        Log.i(TAG, "service destroyed")
         teardown()
         super.onDestroy()
     }
@@ -78,6 +92,9 @@ class RehnumaAccessibilityService : AccessibilityService() {
         sessionActive = false
         bubbleVisible = false
         if (::debugBoxes.isInitialized) debugBoxes.hide()
+        if (::pointer.isInitialized) pointer.hideAll()
+        if (::panel.isInitialized) panel.hide()
+        if (::bubble.isInitialized) bubble.hide()
         if (::notification.isInitialized) notification.release()
         if (::scope.isInitialized) scope.cancel()
     }
@@ -144,13 +161,79 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
     fun showBubble() {
         bubbleVisible = true
+        bubble.show()
         notification.show()
     }
 
     fun hideBubble() {
+        Log.i(TAG, "hideBubble")
         sessionActive = false
         bubbleVisible = false
+        pointer.hideAll()
+        panel.hide()
+        bubble.hide()
         notification.hide()
+    }
+
+    // ---- Bubble and panel (Phase 2: manual pointing) ----
+
+    private val bubbleListener = object : BubbleOverlay.Listener {
+        override fun onHoldStart() {
+            bubble.state = BubbleState.LISTENING
+        }
+
+        override fun onHoldEnd() {
+            bubble.state = BubbleState.IDLE
+        }
+
+        override fun onTap() {
+            if (pointer.isShowing) {
+                pointer.hideAll()
+                bubble.showClose = false
+            } else {
+                panel.show()
+            }
+        }
+
+        override fun onLongPress() {}
+
+        override fun onClose() {
+            pointer.hideAll()
+            bubble.showClose = false
+            bubble.state = BubbleState.IDLE
+        }
+    }
+
+    private val panelListener = object : QuickPanel.Listener {
+        override fun onGoal(goal: String) {
+            pointer.showCaption(goal, urduScript = false)
+        }
+
+        override fun onDebugPoint(elementId: Int) {
+            scope.launch {
+                delay(400) // let the panel close and the app below settle
+                val snapshot = readScreen()
+                val e = snapshot?.element(elementId)
+                if (e == null) {
+                    toast("#$elementId nahi mila")
+                    return@launch
+                }
+                bubble.showClose = true
+                pointer.show(
+                    PointerTarget.Element(e.bounds),
+                    "#${e.id} ${e.displayLabel ?: e.cls}",
+                    urduScript = false,
+                    from = bubble.bubbleCenterOnScreen(),
+                )
+            }
+        }
+
+        override fun onSnapshot() {
+            scope.launch {
+                delay(400)
+                saveSnapshotNow()
+            }
+        }
     }
 
     fun isBubbleVisible(): Boolean = bubbleVisible

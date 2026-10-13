@@ -33,6 +33,20 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Debug snapshot file** uses the planner's request format so `eval_planner.py` can replay it unchanged: `{goal_text, expected, history, screen: {package, window_title, width, height, elements}, captured_at_ms, read_ms}`. `expected` is a list of acceptable answers such as `[{"action": "tap", "element_id": 13}]`, or `[{"action": "home"}]`. Sensitive screens are refused, not saved. The save waits 5 s so you can switch from Rehnuma to the target app.
 - **Emulator check (Pixel 10 Pro image, API 37)**: Debug Boxes align with Android Settings rows at offset (0,0); warm reads take 4–13 ms (the first cold read took 827 ms). Real-phone A2 checks on WhatsApp and the wallet app are still to do.
 
+## Phase 2: Point (2026-10-14)
+
+- **Bubble gestures vs talk mode.** SPEC 5.8 asks for both "hold ≥ 250 ms = talk" and "long-press 1.5 s while idle = quick-task panel", which collide in Hold mode. The bubble only reports raw gestures (hold start/end, tap, 1.5 s long-press, ×); the session maps them:
+  - *Hold mode* (default): hold = talk; **short tap while idle opens the panel**; short tap during a session repeats the last instruction.
+  - *Tap mode*: tap = start/stop listening; 1.5 s long-press while idle opens the panel.
+- The bubble window is 80 dp (64 dp circle plus room for the × chip on the side facing the screen centre). Its side and height are remembered between sessions.
+- **Hand pointer** is drawn in code (rounded shapes with a dark outline and a yellow cuff) so its anchor is exactly the index fingertip. It mirrors horizontally near the right edge and flips upside down near the bottom so it stays on screen. The ring is clamped inside the screen so full-width rows show all four sides.
+- **Scroll direction** means "show what is further that way": for `down` the finger swipes upward across the list. The planner prompt uses the same meaning.
+- **Back/Home** show a yellow arrow (up for home, left for back) above the navigation area with the hand tapping the bottom centre; the planner's caption explains gesture vs button navigation.
+- **Caption card**: dark rounded card with a yellow border, 20 sp (follows the system font scale), max 2 lines, on the opposite half from the target; at the bottom when there is no target. Urdu-script captions use `res/font/noto_nastaliq_urdu.ttf` if it is added (looked up by name at runtime), otherwise the system Arabic-script font with the `ur-PK` text locale. The emulator image has no system Nastaliq font.
+- **Quick panel** is a focusable full-screen overlay with a dimmed scrim, anchored to the top because accessibility overlays are not resized for the keyboard. Typing `#12` points at element 12 (manual test mode).
+- **Testing note:** `adb shell uiautomator dump` (and anything else using UiAutomation) makes Android suppress every other accessibility service while it runs. Rehnuma is unbound, its overlays disappear, and it rebinds a second later. Don't use UI dumps while testing overlays; use screenshots.
+- **Emulator check:** bubble stays on top of Settings; `#13` points exactly at "Display size & text"; tapping through the pointer overlay opens that screen (A1 touch pass-through).
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_
