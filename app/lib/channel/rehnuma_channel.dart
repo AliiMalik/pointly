@@ -113,6 +113,10 @@ class RehnumaChannel {
   static Future<void> saveSnapshot({int delayMs = 5000}) =>
       _control.invokeMethod<void>('saveSnapshot', {'delayMs': delayMs});
 
+  /// Settings "check server": `{reachable, model?, keyOk?, error?}`.
+  static Future<Map<String, dynamic>> checkBackend() async =>
+      (await _control.invokeMapMethod<String, dynamic>('checkBackend')) ?? <String, dynamic>{};
+
   static Future<RehnumaState> getState() async {
     final m = await _control.invokeMethod<Map<dynamic, dynamic>>('getState');
     return m == null ? RehnumaState.idle : RehnumaState.fromMap(m);

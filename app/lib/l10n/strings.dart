@@ -88,6 +88,10 @@ class S {
   static const setResetDone = Bi('سیکھنا صاف ہو گیا', 'Learning cleared');
   static const setDebugBoxes = Bi('ڈیبگ خانے دکھائیں', 'Debug boxes overlay');
   static const setSave = Bi('محفوظ کریں', 'Save');
+  static const setCheck = Bi('سرور چیک کریں', 'Check server');
+  static const setCheckOk = Bi('سرور ٹھیک ہے', 'Server OK');
+  static const setCheckBadKey = Bi('سرور ملا، مگر ایپ کی غلط ہے', 'Server found, but the app key is wrong');
+  static const setCheckDown = Bi('سرور نہیں ملا', 'Server not reachable');
   static const setSaved = Bi('محفوظ ہو گیا', 'Saved');
 
   // Metrics (SPEC 10 item 5)

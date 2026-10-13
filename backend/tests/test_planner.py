@@ -184,3 +184,28 @@ def test_mock_provider_taps_matching_row(settings, auth):
     body = c.post("/v1/plan", json=req, headers=auth).json()
     assert body["action"] == "tap" and body["element_id"] == 2
     assert c.get("/v1/health").json()["model"] == "mock"
+
+
+def test_mock_script_rules(settings, auth, tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    script = tmp_path / "s.json"
+    script.write_text(
+        '[{"goal": "likhai", "title": "Display & touch", "label": "Display size", "say_roman": "Isay dabayein", "goal_key": "settings_font_size"},'
+        ' {"goal": "likhai", "package": "com.android.settings", "action": "done", "say_roman": "Shabash"}]',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MOCK_SCRIPT", str(script))
+    settings.llm_provider = "mock"
+    c = TestClient(create_app(settings))
+    screen = {"package": "com.android.settings", "window_title": "Display & touch", "width": 1080, "height": 2400, "elements": [
+        {"id": 1, "label": "Dark theme", "cls": "View", "clickable": True, "bounds": [0, 0, 10, 10]},
+        {"id": 2, "label": "Display size & text · Font size", "cls": "View", "clickable": True, "bounds": [0, 20, 10, 30]},
+    ]}
+    req = {"session_id": "m", "goal_text": "Phone ke likhai bari karni hai", "step_index": 2, "screen": screen}
+    body = c.post("/v1/plan", json=req, headers=auth).json()
+    assert (body["action"], body["element_id"], body["goal_key"]) == ("tap", 2, "settings_font_size")
+    req["screen"] = dict(screen, window_title="Display size & text")
+    assert c.post("/v1/plan", json=req, headers=auth).json()["action"] == "done"

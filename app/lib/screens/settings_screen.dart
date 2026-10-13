@@ -17,6 +17,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _appKey = TextEditingController();
   Map<String, dynamic> _config = {};
   bool _loading = true;
+  bool _checking = false;
+  String? _checkResult;
+  bool _checkGood = false;
 
   @override
   void initState() {
@@ -52,6 +55,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _toast(S.setSaved);
   }
 
+  Future<void> _check() async {
+    setState(() {
+      _checking = true;
+      _checkResult = null;
+    });
+    await RehnumaChannel.setConfig({'baseUrl': _baseUrl.text, 'appKey': _appKey.text});
+    final r = await RehnumaChannel.checkBackend();
+    if (!mounted) return;
+    final Bi msg;
+    if (r['reachable'] != true) {
+      msg = S.setCheckDown;
+    } else if (r['keyOk'] != true) {
+      msg = S.setCheckBadKey;
+    } else {
+      msg = S.setCheckOk;
+    }
+    final detail = r['reachable'] == true ? 'model: ${r['model'] ?? '?'}' : '${r['error'] ?? ''}';
+    setState(() {
+      _checking = false;
+      _checkGood = r['reachable'] == true && r['keyOk'] == true;
+      _checkResult = [msg.ur, msg.en, detail].join('\n');
+    });
+  }
+
   void _toast(Bi text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${text.ur} · ${text.en}')));
@@ -80,6 +107,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextField(controller: _appKey, style: const TextStyle(fontSize: 18)),
                     const SizedBox(height: 12),
                     BigButton(label: S.setSave, icon: Icons.save_rounded, onPressed: _saveServer, minHeight: 56),
+                    const SizedBox(height: 8),
+                    BigButton(
+                      label: S.setCheck,
+                      icon: Icons.wifi_tethering_rounded,
+                      color: Colors.white,
+                      foreground: Theme.of(context).colorScheme.primary,
+                      minHeight: 56,
+                      onPressed: _checking ? null : _check,
+                    ),
+                    if (_checking) const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator()),
+                    if (_checkResult != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _checkResult!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: _checkGood ? Theme.of(context).colorScheme.primary : const Color(0xFFB3261E),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 _Choice(

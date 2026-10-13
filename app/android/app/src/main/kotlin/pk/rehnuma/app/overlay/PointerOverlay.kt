@@ -93,6 +93,26 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
     /** Shows only a caption (thinking, listening partials, pauses). */
     fun showCaption(text: String?, urduScript: Boolean) = show(null, text, urduScript, null)
 
+    /** Shows [text] in the caption card for [ms], then puts the previous caption back. */
+    fun flashCaption(text: String, urduScript: Boolean, ms: Long = FLASH_MS) {
+        if (!isShowing) {
+            showCaption(text, urduScript)
+            return
+        }
+        val previous = caption.text?.toString()
+        val wasVisible = caption.visibility == View.VISIBLE
+        caption.text = text
+        caption.textDirection = if (urduScript) View.TEXT_DIRECTION_RTL else View.TEXT_DIRECTION_LTR
+        caption.visibility = View.VISIBLE
+        handler.removeCallbacks(restoreCaption)
+        restoreCaption = Runnable {
+            if (wasVisible && previous != null) caption.text = previous else caption.visibility = View.GONE
+        }
+        handler.postDelayed(restoreCaption, ms)
+    }
+
+    private var restoreCaption = Runnable {}
+
     /** The user hesitated: fly the hand in from the bubble (SPEC 9.1). */
     fun revealHand(from: Point?) {
         if (!isShowing) return
@@ -100,6 +120,7 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
     }
 
     fun hideAll() {
+        handler.removeCallbacks(restoreCaption)
         arrived?.let { handler.removeCallbacks(it) }
         arrived = null
         pointer.clear()
@@ -365,5 +386,6 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
         const val TAP_MS = 1200L
         const val PULSE_MS = 1200L
         const val SWIPE_MS = 1600L
+        const val FLASH_MS = 3500L
     }
 }

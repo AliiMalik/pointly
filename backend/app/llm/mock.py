@@ -5,6 +5,7 @@ most keywords with the goal. Good enough to exercise the phone's guidance loop o
 substitute for the real planner.
 """
 
+import json
 import os
 import re
 
@@ -28,12 +29,65 @@ SYNONYMS = {
 }
 
 
+SCREEN_LINE = re.compile(r'^SCREEN \(package=([^,]+), size=[^,)]+(?:, title=(".*"))?\):$')
+
+
+def load_script() -> list[dict]:
+    """`MOCK_SCRIPT=rules.json`: scripted answers for rehearsals. Each rule may match on `goal`
+    (substring), `package` and `title` (window title), and answers with `action` (and `label`, a
+    substring of the element to tap, plus optional `say_roman`/`say_urdu`)."""
+    path = os.environ.get("MOCK_SCRIPT")
+    if not path:
+        return []
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 class MockProvider:
+    def __init__(self) -> None:
+        self.script = load_script()
+
+    def _scripted(self, goal: str, text: str) -> dict | None:
+        package = title = None
+        for line in text.splitlines():
+            m = SCREEN_LINE.match(line)
+            if m:
+                package = m.group(1)
+                title = json.loads(m.group(2)) if m.group(2) else None
+        for rule in self.script:
+            if "goal" in rule and rule["goal"].lower() not in goal:
+                continue
+            if "package" in rule and rule["package"] != package:
+                continue
+            if "title" in rule and rule["title"] != title:
+                continue
+            action = rule.get("action", "tap")
+            element_id = None
+            if action in ("tap", "type", "scroll"):
+                for line in text.splitlines():
+                    m = LINE.match(line)
+                    if m and rule.get("label", "").lower() in m.group(3).lower():
+                        element_id = int(m.group(1))
+                        break
+                if element_id is None:
+                    continue
+            return {
+                "action": action, "element_id": element_id,
+                "scroll_direction": rule.get("scroll_direction", "down" if action == "scroll" else None),
+                "say_urdu": rule.get("say_urdu", "یہاں دبائیں"),
+                "say_roman": rule.get("say_roman", "Yahan dabayein"),
+                "goal_key": rule.get("goal_key", "mock_scripted"), "confidence": 0.9, "reason": "mock script",
+            }
+        return None
+
     async def plan(self, system: str, turns: list[Turn], schema: type[BaseModel]) -> dict:
         text = turns[-1].text
         if text.startswith("Your last answer was invalid"):
             text = next(t.text for t in reversed(turns) if t.text.startswith("GOAL:"))
         goal = text.splitlines()[0].removeprefix("GOAL:").strip().lower()
+        scripted = self._scripted(goal, text)
+        if scripted:
+            return scripted
         wanted: list[str] = []
         for w in WORD.findall(goal):
             wanted += SYNONYMS.get(w, [w] if len(w) > 3 else [])

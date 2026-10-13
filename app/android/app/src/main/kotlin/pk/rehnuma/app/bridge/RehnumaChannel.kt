@@ -12,11 +12,16 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import pk.rehnuma.app.config.AppConfig
+import pk.rehnuma.app.net.PlannerClient
 import pk.rehnuma.app.service.RehnumaAccessibilityService
 
 /** MethodChannel `rehnuma/control` and EventChannel `rehnuma/events` (SPEC 10.1, 10.2). */
 class RehnumaChannel(private val activity: Activity) : MethodChannel.MethodCallHandler {
+
+    private val scope = MainScope()
 
     fun register(engine: FlutterEngine) {
         val messenger = engine.dartExecutor.binaryMessenger
@@ -83,6 +88,9 @@ class RehnumaChannel(private val activity: Activity) : MethodChannel.MethodCallH
                 }
             }
             "getState" -> result.success(RehnumaEvents.last)
+            "checkBackend" -> scope.launch {
+                result.success(PlannerClient({ AppConfig.load(ctx) }).check())
+            }
             "getPermissions" -> result.success(
                 mapOf(
                     "accessibility" to RehnumaAccessibilityService.isEnabled(ctx),

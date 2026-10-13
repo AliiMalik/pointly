@@ -302,6 +302,7 @@ class GuidanceSession(
             StepVerifier.Verdict.UNCHANGED -> Unit
             StepVerifier.Verdict.WRONG_TAP -> if (!s.wrongTapSaid) {
                 s.wrongTapSaid = true
+                ui.flashCaption(caption(Phrase.WRONG_TAP.urdu, Phrase.WRONG_TAP.roman))
                 say(Phrase.WRONG_TAP)
             }
             StepVerifier.Verdict.PROGRESS -> stepDone(s, "done", next = snapshot)
@@ -334,7 +335,10 @@ class GuidanceSession(
         }
         ui.clear()
         voice.stop() // the old instruction is no longer true
-        phrase?.let { say(it) }
+        phrase?.let {
+            ui.caption(caption(it.urdu, it.roman)) // readable without sound too
+            say(it)
+        }
         runFlow {
             if (next != null) planFrom(next) else planFromScreen(fromNow = true)
         }
@@ -536,6 +540,7 @@ class GuidanceSession(
                 ui.point(pointerTarget(s), null, withHand = false) { arrived(s) }
                 if (!yourTurnSaid) {
                     yourTurnSaid = true
+                    ui.flashCaption(caption(Phrase.YOUR_TURN.urdu, Phrase.YOUR_TURN.roman))
                     say(Phrase.YOUR_TURN)
                 }
                 revealAfter(s, SILENT_REVEAL_MS)

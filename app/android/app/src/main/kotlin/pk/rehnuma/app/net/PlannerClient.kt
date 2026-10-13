@@ -5,6 +5,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.ConnectionPool
@@ -59,6 +61,27 @@ class PlannerClient(
         val body = ApiJson.encodeToString(TtsRequest.serializer(), TtsRequest(textUrdu))
         // No retry: a 503 here means the cloud voice is not set up, and captions are enough.
         return send("/v1/tts", { body.toRequestBody(jsonType) }, {}, attempts = 1) { r -> r.body!!.bytes() }
+    }
+
+    /** Settings "check server": health (no key) and ping (with key). Never throws. */
+    suspend fun check(): Map<String, Any?> = withContext(io) {
+        val cfg = config()
+        val base = cfg.baseUrl.trimEnd('/')
+        fun get(path: String, key: Boolean): Pair<Int, String?> = try {
+            val req = Request.Builder().url(base + path).apply { if (key) header("X-Rehnuma-Key", cfg.appKey) }.get().build()
+            http.newCall(req).execute().use { it.code to it.body?.string() }
+        } catch (e: Exception) {
+            -1 to (e.message ?: e.javaClass.simpleName)
+        }
+        val (healthCode, healthBody) = get("/v1/health", key = false)
+        if (healthCode != 200) {
+            return@withContext mapOf("reachable" to false, "error" to (healthBody ?: "HTTP $healthCode"))
+        }
+        val model = runCatching {
+            ApiJson.parseToJsonElement(healthBody!!).jsonObject["model"]?.jsonPrimitive?.content
+        }.getOrNull()
+        val (pingCode, _) = get("/v1/ping", key = true)
+        mapOf("reachable" to true, "model" to model, "keyOk" to (pingCode == 200))
     }
 
     private suspend fun <T> send(

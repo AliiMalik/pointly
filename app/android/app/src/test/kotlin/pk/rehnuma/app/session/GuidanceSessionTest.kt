@@ -100,6 +100,11 @@ class GuidanceSessionTest {
 
         override fun revealHand() {}
 
+        val flashes = mutableListOf<String>()
+        override fun flashCaption(text: String) {
+            flashes += text
+        }
+
         override fun clear() {
             cleared++
         }
@@ -239,6 +244,7 @@ class GuidanceSessionTest {
         settle()
 
         assertEquals(listOf(Phrase.DEVIATION.roman), r.voice.said.filter { it == Phrase.DEVIATION.roman })
+        assertTrue(r.ui.captions.contains(Phrase.DEVIATION.roman))
         assertEquals("deviated", r.session.history.single().outcome)
         assertEquals(2, r.planner.requests.size)
         assertEquals("Ali", r.planner.requests[1].screen.elements[0].text) // re-planned from Ali's chat
@@ -257,6 +263,7 @@ class GuidanceSessionTest {
         settle()
 
         assertEquals(1, r.voice.said.count { it == Phrase.WRONG_TAP.roman })
+        assertEquals(listOf(Phrase.WRONG_TAP.roman), r.ui.flashes)
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
         assertEquals(1, r.planner.requests.size)
     }
