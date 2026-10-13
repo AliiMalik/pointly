@@ -98,7 +98,7 @@ class GuidanceSession(
     private class Step(
         val number: Int,
         val plan: PlanResponse,
-        val target: ScreenElement?,
+        var target: ScreenElement?,
         val snapshot: ScreenSnapshot,
         val verifier: StepVerifier,
         val level: GuidanceLevel,
@@ -299,15 +299,28 @@ class GuidanceSession(
     private fun judge(snapshot: ScreenSnapshot) {
         val s = step ?: return
         when (s.verifier.judge(snapshot)) {
-            StepVerifier.Verdict.UNCHANGED -> Unit
-            StepVerifier.Verdict.WRONG_TAP -> if (!s.wrongTapSaid) {
-                s.wrongTapSaid = true
-                ui.flashCaption(caption(Phrase.WRONG_TAP.urdu, Phrase.WRONG_TAP.roman))
-                say(Phrase.WRONG_TAP)
+            StepVerifier.Verdict.UNCHANGED -> follow(s, snapshot)
+            StepVerifier.Verdict.WRONG_TAP -> {
+                follow(s, snapshot)
+                if (!s.wrongTapSaid) {
+                    s.wrongTapSaid = true
+                    ui.flashCaption(caption(Phrase.WRONG_TAP.urdu, Phrase.WRONG_TAP.roman))
+                    say(Phrase.WRONG_TAP)
+                }
             }
             StepVerifier.Verdict.PROGRESS -> stepDone(s, "done", next = snapshot)
             StepVerifier.Verdict.DEVIATION -> stepDone(s, "deviated", next = snapshot, phrase = Phrase.DEVIATION)
         }
+    }
+
+    /** Keeps the pointer on the target when the same screen shifts (new message, expanded item). */
+    private fun follow(s: Step, snapshot: ScreenSnapshot) {
+        val old = s.target ?: return
+        val moved = s.verifier.signature?.findIn(snapshot) ?: return
+        if (moved.bounds == old.bounds) return
+        s.target = moved
+        s.verifier.retarget(moved)
+        ui.movePointer(pointerTarget(s))
     }
 
     /** Records the step and moves on to the next screen (SPEC 5.5 WAITING_FOR_USER -> READING_SCREEN). */

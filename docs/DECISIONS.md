@@ -101,6 +101,15 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **`eval_planner.py`** calls `Planner.plan_detailed` (the `/v1/plan` code path, plus valid/retried flags) for every labelled file in `eval/snapshots/`, with up to 3 in parallel. Unlabelled files (empty `goal_text`/`expected`) are skipped and listed. Failures go to `eval/reports/failures-<time>.csv` (git-ignored). `--mock` checks the harness without a key.
 - **Bundled eval cases (9)**: 8 real emulator screens captured with the app's own "Save snapshot" (Settings main ×2 goals, Display & touch, Display size & text, Network & internet, Internet with Wi‑Fi already on → `done`, launcher → Phone, dialer with no contact named → `ask`) and 1 synthetic WhatsApp chat list from SPEC 6.2 (named `synthetic_…`). SPEC's target of 50 snapshots across WhatsApp, Settings and the wallet app needs the demo phone: capture with Metrics → "Save current screen snapshot" or the bubble panel's Snapshot button, fill `goal_text`/`expected`, drop into `backend/eval/snapshots/`.
 
+## Phase 8: Polish and testing (2026-10-14)
+
+- **Check server** in Settings saves the URL/key, then calls `/v1/health` and the authenticated `/v1/ping`, and reports reachable / wrong key / OK with the model name, so the phone can be set up at the venue without guessing.
+- **Pointer follows the target**: on every settled re-read while pointing, if the planned element is still on the same window but at new bounds (a list shifted, a notification expanded, a new chat message pushed rows down), ring and hand glide there and taps are matched against the new bounds. Found on the emulator when expanding a notification left the pointer on the wrong row.
+- **Captions for every spoken phrase**: WRONG_TAP and YOUR_TURN briefly replace the instruction caption (3.5 s); DEVIATION shows while the next step is planned. Without an Urdu voice nothing important is audio-only.
+- **Scripted mock** (`MOCK_SCRIPT`): rules by goal/package/window title → tap a label or say done. Used for the repeat-run tests and handy for offline rehearsal; never used unless set.
+- Launcher icon: adaptive icon (yellow target ring, white centre, brand green), with a monochrome layer for themed icons.
+- Emulator results and the remaining phone-only checks are in [`TEST_REPORT.md`](TEST_REPORT.md).
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_

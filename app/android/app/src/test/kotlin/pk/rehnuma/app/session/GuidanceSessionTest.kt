@@ -100,6 +100,11 @@ class GuidanceSessionTest {
 
         override fun revealHand() {}
 
+        val moves = mutableListOf<PointerTarget>()
+        override fun movePointer(target: PointerTarget) {
+            moves += target
+        }
+
         val flashes = mutableListOf<String>()
         override fun flashCaption(text: String) {
             flashes += text
@@ -695,5 +700,31 @@ class GuidanceSessionTest {
         r.session.cancel()
         assertEquals("cancelled", r.observer.steps.single().outcome)
         assertNull(r.observer.steps.single().timeToUserTapMs)
+    }
+
+    @Test fun pointerFollowsTargetWhenListShifts() = runTest {
+        val r = rig(chats)
+        r.planner.then(tap(2, "Sara dabayein"))
+        r.session.submitGoal("Sara ko photo")
+        runCurrent()
+        // A new message pushes Sara's row down by 140 px on the same window.
+        val shifted = snap(
+            el(1, text = "Chats", clickable = true, bounds = listOf(0, 300, 360, 400)),
+            el(2, label = "Bilal · Naya message", viewId = "row", clickable = true, bounds = listOf(0, 420, 1080, 560)),
+            el(3, label = "Sara · Kal milte hain", viewId = "row", clickable = true, bounds = listOf(0, 560, 1080, 700)),
+            el(4, label = "Ali · Salam", viewId = "row", clickable = true, bounds = listOf(0, 700, 1080, 840)),
+            pkg = "com.whatsapp", windowId = 20,
+        )
+        r.screen.current = shifted
+        r.session.onEvent(ScreenEvent(ScreenEvent.Type.WINDOW_CONTENT, "com.whatsapp"))
+        settle()
+        assertEquals(listOf(PointerTarget.Element(listOf(0, 560, 1080, 700))), r.ui.moves)
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+        // A tap on Sara's new position counts; a tap on Bilal (her old spot) would not.
+        r.planner.then(plan("done"))
+        r.screen.current = saraChat
+        r.session.onEvent(click("com.whatsapp", listOf(0, 560, 1080, 700)))
+        settle()
+        assertEquals("done", r.session.history.single().outcome)
     }
 }

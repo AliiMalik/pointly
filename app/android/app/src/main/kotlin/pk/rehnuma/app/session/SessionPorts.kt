@@ -65,6 +65,9 @@ interface SessionUi {
     /** Fly the hand in for a step that started without it (HINT/SILENT levels). */
     fun revealHand()
 
+    /** The target moved on screen (a list shifted): glide ring and hand there, no fly-in, no speech. */
+    fun movePointer(target: PointerTarget)
+
     /** Briefly replace the caption (pointer stays), e.g. WRONG_TAP, so it is readable without sound. */
     fun flashCaption(text: String)
 

@@ -113,6 +113,12 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
 
     private var restoreCaption = Runnable {}
 
+    /** Moves ring and hand to [target] without the fly-in (the element moved on screen). */
+    fun moveTo(target: PointerTarget) {
+        if (!isShowing) return
+        root.post { pointer.moveTo(target, offsetX, offsetY) }
+    }
+
     /** The user hesitated: fly the hand in from the bubble (SPEC 9.1). */
     fun revealHand(from: Point?) {
         if (!isShowing) return
@@ -207,6 +213,18 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
             ringVisible = withRing && t != null
             handVisible = withHand && t != null
             handStart = SystemClock.uptimeMillis()
+            postInvalidateOnAnimation()
+        }
+
+        fun moveTo(t: PointerTarget, ox: Int, oy: Int) {
+            target = t
+            when (t) {
+                is PointerTarget.Element -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
+                is PointerTarget.Scroll -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
+                else -> Unit
+            }
+            // Skip the fly-in: the hand jumps to the new spot and keeps tapping.
+            if (SystemClock.uptimeMillis() - handStart < FLY_MS) handStart = SystemClock.uptimeMillis() - FLY_MS
             postInvalidateOnAnimation()
         }
 

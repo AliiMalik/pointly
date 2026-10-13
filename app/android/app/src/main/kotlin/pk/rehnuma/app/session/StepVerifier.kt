@@ -8,9 +8,12 @@ import pk.rehnuma.app.screen.TargetSignature
 /** Decides whether the user did what the current step asked (SPEC 5.7). Pure logic. */
 class StepVerifier(
     val action: String,
-    val target: ScreenElement?,
+    target: ScreenElement?,
     val before: ScreenSnapshot,
 ) {
+    /** The element being pointed at; follows it if the list moves (see [retarget]). */
+    var target: ScreenElement? = target
+        private set
     enum class Click { MATCH, MISMATCH, UNKNOWN }
 
     enum class Verdict {
@@ -31,6 +34,11 @@ class StepVerifier(
 
     var sawMismatchClick = false
         private set
+
+    /** The same element now sits at new bounds (a list shifted); clicks are matched against these. */
+    fun retarget(moved: ScreenElement) {
+        target = moved
+    }
     var typedOnTarget = false
         private set
 
@@ -71,9 +79,10 @@ class StepVerifier(
 
     /** `scroll`: a scroll event on or inside the target container. */
     fun onScrolled(src: SourceInfo?): Boolean {
-        if (action != PlanResponse.SCROLL || target == null) return false
+        val t = target
+        if (action != PlanResponse.SCROLL || t == null) return false
         val b = src?.bounds ?: return true
-        return b[0] < target.right && b[2] > target.left && b[1] < target.bottom && b[3] > target.top
+        return b[0] < t.right && b[2] > t.left && b[1] < t.bottom && b[3] > t.top
     }
 
     private fun isTarget(src: SourceInfo): Boolean {

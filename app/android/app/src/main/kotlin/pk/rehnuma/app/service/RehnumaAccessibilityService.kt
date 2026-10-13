@@ -222,6 +222,8 @@ class RehnumaAccessibilityService : AccessibilityService() {
 
         override fun revealHand() = pointer.revealHand(bubble.bubbleCenterOnScreen())
 
+        override fun movePointer(target: PointerTarget) = pointer.moveTo(target)
+
         override fun flashCaption(text: String) = pointer.flashCaption(text, config.caption == AppConfig.CAPTION_URDU)
 
         override fun clear() = pointer.hideAll()

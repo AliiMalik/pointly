@@ -46,7 +46,7 @@ class S {
   static const permTitle = Bi('اجازتیں', 'Permissions');
   static const permAccessibility = Bi('رہنما سروس آن کریں', 'Turn on the Rehnuma accessibility service');
   static const permAccessibilityHelp = Bi(
-    'اگر سیٹنگ بند ہو: App info → ⋮ → Allow restricted settings',
+    'اگر سیٹنگ بند ہو تو نیچے لکھا طریقہ استعمال کریں',
     'Agar setting band ho: App info → ⋮ → Allow restricted settings.',
   );
   static const permMicrophone = Bi('مائیک کی اجازت', 'Microphone');

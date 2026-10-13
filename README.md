@@ -35,7 +35,7 @@ Check: open `http://<laptop-ip>:8000/v1/health` → `{"status":"ok","model":"gem
 
 No API key yet? `LLM_PROVIDER=mock` runs a keyword planner (and `MOCK_STT_TEXT="..."` fakes speech) so the whole loop can be rehearsed. `/v1/health` then reports `"model": "mock"`.
 
-Tests: `.venv/Scripts/python -m pytest` (58 tests).
+Tests: `.venv/Scripts/python -m pytest` (59 tests).
 
 ## 2. App (phone)
 
@@ -57,7 +57,7 @@ On the phone:
 
 Using it: **hold** the bubble and speak, release to send. A short tap while idle opens the quick-task panel (five tasks, a Roman Urdu text box for noisy rooms, Snapshot). During guidance a short tap repeats the instruction, and **×** or the notification's **Band karein** stops everything. Settings can switch to Tap-to-talk, cloud speech, Urdu-script captions, and **Demo mode** (always full help, use it on stage).
 
-Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (94 tests). Dart: `flutter test`.
+Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (95 tests). Dart: `flutter test`.
 
 ## 3. Demo-day checklist (SPEC 12)
 
