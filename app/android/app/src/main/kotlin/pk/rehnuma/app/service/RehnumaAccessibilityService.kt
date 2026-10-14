@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.Toast
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -189,6 +190,15 @@ class RehnumaAccessibilityService : AccessibilityService() {
         RehnumaEvents.emit(SessionState.IDLE.name)
     }
 
+    /** Top edge of the visible keyboard window, if any (only its bounds are read, never its content). */
+    private fun keyboardTop(): Int? = try {
+        windows.orEmpty()
+            .firstOrNull { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+            ?.let { w -> Rect().also { w.getBoundsInScreen(it) }.takeIf { !it.isEmpty }?.top }
+    } catch (_: RuntimeException) {
+        null
+    }
+
     /** Reads the current screen off the main thread. */
     suspend fun readScreen(): ScreenSnapshot? = withContext(readDispatcher) {
         try {
@@ -209,6 +219,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         }
 
         override fun point(target: PointerTarget, caption: String?, withHand: Boolean, onArrived: () -> Unit) {
+            pointer.keyboardTop = keyboardTop()
             // HINT/SILENT levels start without hand or ring; both appear if the user hesitates.
             pointer.show(
                 target, caption, urduScript = config.caption == AppConfig.CAPTION_URDU,
@@ -217,6 +228,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         }
 
         override fun caption(text: String?) {
+            pointer.keyboardTop = keyboardTop()
             if (text == null) pointer.hideAll() else pointer.showCaption(text, config.caption == AppConfig.CAPTION_URDU)
         }
 

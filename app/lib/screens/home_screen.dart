@@ -10,7 +10,10 @@ import '../widgets/bilingual.dart';
 
 /// Start/stop button, the five quick tasks and the live session state (SPEC 10 item 3).
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.states});
+
+  /// Session states to show; defaults to the core's EventChannel (tests pass their own).
+  final Stream<RehnumaState>? states;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _sub = RehnumaChannel.states.listen((s) => setState(() => _state = s));
+    _sub = (widget.states ?? RehnumaChannel.states).listen((s) => setState(() => _state = s));
     _refresh();
   }
 

@@ -134,6 +134,9 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
         hide()
     }
 
+    /** Top of the on-screen keyboard in screen pixels, or null when it is closed. Set before each show. */
+    var keyboardTop: Int? = null
+
     private fun setCaption(text: String?, urdu: Boolean, target: PointerTarget?) {
         if (text.isNullOrBlank()) {
             caption.visibility = View.GONE
@@ -153,7 +156,13 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
         }
         val lp = caption.layoutParams as FrameLayout.LayoutParams
         val m = (16 * density).toInt()
-        lp.setMargins(m, (56 * density).toInt(), m, (112 * density).toInt())
+        var bottom = (112 * density).toInt()
+        keyboardTop?.let { kb ->
+            // Sit just above the keyboard instead of covering its keys.
+            val overlayH = root.height.takeIf { it > 0 } ?: screenH
+            bottom = maxOf(bottom, overlayH - (kb - offsetY) + (12 * density).toInt())
+        }
+        lp.setMargins(m, (56 * density).toInt(), m, bottom)
         lp.gravity = if (targetTop) Gravity.BOTTOM else Gravity.TOP
         if (target == null) lp.gravity = Gravity.BOTTOM
         caption.layoutParams = lp

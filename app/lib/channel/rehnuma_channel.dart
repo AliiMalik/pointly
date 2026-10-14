@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Snapshot of the guidance session, sent by the Kotlin core on every state change (SPEC 10.2).
@@ -53,6 +54,10 @@ class RehnumaChannel {
   static const _events = EventChannel('rehnuma/events');
 
   static Stream<RehnumaState>? _stateStream;
+
+  /// Tests replace the platform side between cases; drop the cached stream with it.
+  @visibleForTesting
+  static void resetForTest() => _stateStream = null;
 
   /// Broadcast stream of session states; the core replays the latest state on listen.
   static Stream<RehnumaState> get states => _stateStream ??= _events

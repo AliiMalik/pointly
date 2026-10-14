@@ -34,8 +34,8 @@ SCREEN_LINE = re.compile(r'^SCREEN \(package=([^,]+), size=[^,)]+(?:, title=(".*
 
 def load_script() -> list[dict]:
     """`MOCK_SCRIPT=rules.json`: scripted answers for rehearsals. Each rule may match on `goal`
-    (substring), `package` and `title` (window title), and answers with `action` (and `label`, a
-    substring of the element to tap, plus optional `say_roman`/`say_urdu`)."""
+    (substring), `package`, `title` (window title) and `step`, and answers with `action` (and
+    `label`, a substring of the element to tap, plus optional `say_roman`/`say_urdu`)."""
     path = os.environ.get("MOCK_SCRIPT")
     if not path:
         return []
@@ -49,7 +49,10 @@ class MockProvider:
 
     def _scripted(self, goal: str, text: str) -> dict | None:
         package = title = None
+        step = None
         for line in text.splitlines():
+            if line.startswith("STEP: "):
+                step = int(line.removeprefix("STEP: ").strip())
             m = SCREEN_LINE.match(line)
             if m:
                 package = m.group(1)
@@ -60,6 +63,8 @@ class MockProvider:
             if "package" in rule and rule["package"] != package:
                 continue
             if "title" in rule and rule["title"] != title:
+                continue
+            if "step" in rule and rule["step"] != step:
                 continue
             action = rule.get("action", "tap")
             element_id = None
@@ -84,7 +89,9 @@ class MockProvider:
         text = turns[-1].text
         if text.startswith("Your last answer was invalid"):
             text = next(t.text for t in reversed(turns) if t.text.startswith("GOAL:"))
-        goal = text.splitlines()[0].removeprefix("GOAL:").strip().lower()
+        # The goal may span lines (an "User answer: ..." line is added after ASK): take
+        # everything between GOAL: and STEP:.
+        goal = text.split("\nSTEP:", 1)[0].removeprefix("GOAL:").strip().lower()
         scripted = self._scripted(goal, text)
         if scripted:
             return scripted
