@@ -51,6 +51,30 @@ New bug found and fixed: on a TYPE step the caption covered the bottom row of ke
 
 **Real phone:** the release APK is installed on an OPPO CPH2001 (Android 11, ColorOS 11.1, 1080×2400, WhatsApp installed). It starts and shows onboarding without crashing. It has Google TTS and Google speech recognition. The guided flows have not been run on it yet: the accessibility service has to be switched on by hand on the phone.
 
+## Real phone: OPPO CPH2001 with live Gemini (2026-10-14, 12:50–13:12)
+
+Release APK, ColorOS 11.1 (Android 11), backend on the laptop over USB (`adb reverse`), `gemini-3.5-flash-lite`.
+
+| Check | Result |
+| --- | --- |
+| Install, service binding | Release build installs over the previous one; the service is re-bound with `capabilities=1` (read window content only, no gestures) |
+| Settings → Check server | "Server not reachable" with the reason for the emulator default URL; "Server OK · gemini-3.5-flash-lite" for `http://127.0.0.1:8000` |
+| Bubble and panel (A1) | Bubble stays on top of ColorOS Settings in dark theme; panel and quick tasks work; touches pass through |
+| Pointer alignment (A2) | Ring and hand sit exactly on ColorOS rows ("Display & brightness", "Font & display size") on a 1080×2400 screen |
+| Live planning | ColorOS labels differ from stock Android and the model still chose correctly: Display & brightness → scroll → Font & display size → font slider. 1.2–2.4 s per step normally; 4.6–5.8 s during a Gemini slowdown |
+| Slow network (A8-style) | Gemini exceeded the budget once: backend 503, phone said NETWORK_SLOW, retried once, the retry succeeded |
+| Cancel (A7) | × removes all overlays at once |
+| Real user | The owner used the phone during the test and the guidance followed their own scroll and taps correctly |
+| Screen reading | 20–60 ms typically; one 166 ms read (84 nodes) on a long Settings page |
+
+Found on the real phone and fixed (commit `425e996`):
+1. **Runaway scroll steps**: on "Display & brightness" with auto-brightness on, the slider value and a pop-in "HIGH POWER CONSUMPTION" label changed constantly, and the old check counted that as scrolling. 7 scroll steps were marked done with no user action, and each cost a planner call. Scroll steps now need rows inside the list to move or be replaced.
+2. **Needless re-plans**: the same live values triggered a second planner call for most steps. Re-planning now happens only when the window changed or the target is gone.
+3. **Sliders could not be guided**: ColorOS sets font size with a slider, and the hand pointed at its middle (no change). New `drag` action: slider ranges are sent to the planner, the hand starts on the thumb and sweeps the right way, and the step finishes when the value changes. Verified live: "Likhai bari karne ke liye slider ko daayein taraf kheenchein", and dragging one notch completed the step.
+4. **Slider found by place**: a slider's label is its value, and ColorOS's live preview shifts it by ~15 px, which falsely completed a second drag step. Sliders are now matched by kind and nearest position.
+
+Not tested on the phone: speaking (no one could talk to it remotely), the device Urdu voice (cloud TTS has no credentials, so only captions were checked), WhatsApp and the wallet app (private data and real messages), and the PIN pause (checked on the emulator).
+
 ## Bugs found and fixed during the run
 
 1. **Response bodies read on the main thread** (`NetworkOnMainThreadException`, shown as "Internet ka masla"): showed up after an STT upload. HTTP attempts now run on `Dispatchers.IO`.
