@@ -6,9 +6,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 MAX_ELEMENTS = 120
 
-Action = Literal["tap", "type", "scroll", "back", "home", "ask", "done", "cant_help"]
+Action = Literal["tap", "type", "scroll", "drag", "back", "home", "ask", "done", "cant_help"]
 ScrollDirection = Literal["up", "down", "left", "right"]
-ELEMENT_ACTIONS = {"tap", "type", "scroll"}
+ELEMENT_ACTIONS = {"tap", "type", "scroll", "drag"}
+DIRECTION_ACTIONS = {"scroll", "drag"}
 
 
 class Element(BaseModel):
@@ -27,6 +28,7 @@ class Element(BaseModel):
     checked: bool | None = None
     selected: bool | None = None
     bounds: list[int] = Field(min_length=4, max_length=4)
+    range: list[float] | None = Field(default=None, min_length=3, max_length=3)  # sliders: [min, max, current]
 
 
 class Screen(BaseModel):

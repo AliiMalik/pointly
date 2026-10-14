@@ -32,6 +32,7 @@ data class ApiElement(
     val checked: Boolean? = null,
     val selected: Boolean? = null,
     val bounds: List<Int>,
+    val range: List<Float>? = null,
 )
 
 @Serializable
@@ -80,12 +81,13 @@ data class PlanResponse(
         const val TAP = "tap"
         const val TYPE = "type"
         const val SCROLL = "scroll"
+        const val DRAG = "drag"
         const val BACK = "back"
         const val HOME = "home"
         const val ASK = "ask"
         const val DONE = "done"
         const val CANT_HELP = "cant_help"
-        val NEEDS_ELEMENT = setOf(TAP, TYPE, SCROLL)
+        val NEEDS_ELEMENT = setOf(TAP, TYPE, SCROLL, DRAG)
     }
 }
 
@@ -140,4 +142,5 @@ fun ScreenElement.toApi(): ApiElement = ApiElement(
     checked = checked,
     selected = selected,
     bounds = bounds,
+    range = range,
 )

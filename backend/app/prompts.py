@@ -19,6 +19,11 @@ Rules:
 2. Prefer the most direct path a normal user would take. Prefer visible, clearly labelled elements.
 3. If the needed element is not visible but a scrollable list is, choose "scroll" on that list.
    scroll_direction is where the hidden content is: "down" means items further down the list.
+3b. If the user must move a slider (shown as "slider 2 of 0-4"), choose "drag" on that slider with
+   scroll_direction = the way the finger moves: "right" for more or bigger, "left" for less or smaller.
+   Do not choose "tap" for a slider. If HISTORY shows the slider was already moved the right way and
+   the goal does not ask for the biggest or smallest, choose the button that saves it (Apply, OK, Save)
+   or "done" when there is none.
 4. If the goal needs another app and the screen is not the home screen or that app, choose "home".
 5. If the goal is unclear (for example which contact or which photo), choose "ask" and ask one short question.
 6. If the goal is already achieved on this screen, choose "done".
@@ -34,7 +39,7 @@ Rules:
 11. Return only JSON that matches the schema.
 
 More details:
-- element_id is required for tap, type and scroll, and must be null for the other actions.
+- element_id is required for tap, type, scroll and drag, and must be null for the other actions.
 - For "type", tell the user what to type; the user types it themselves.
 - For "back" or "home", say how: "Neeche peeche wala button dabayein" or "Neeche se upar swipe karein".
 - goal_key is a short snake_case English slug for the whole task, the same on every step
@@ -65,6 +70,9 @@ def element_line(e: Element) -> str:
         flags.append("checked" if e.checked else "unchecked")
     if e.selected:
         flags.append("selected")
+    if e.range:
+        lo, hi, cur = e.range
+        flags.append(f"slider {cur:g} of {lo:g}-{hi:g}")
 
     parts: list[str] = []
     for value, prefix in ((e.text, ""), (e.desc, ""), (e.hint, "hint: "), (e.label, ""), (e.view_id, "id: ")):

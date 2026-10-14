@@ -727,4 +727,51 @@ class GuidanceSessionTest {
         settle()
         assertEquals("done", r.session.history.single().outcome)
     }
+
+    // ---------------------------------------------------------------- live values (OPPO ColorOS run)
+
+    private val displayList = el(1, viewId = "recycler_view", cls = "List", scrollable = true, bounds = listOf(0, 294, 1080, 2400))
+
+    private fun brightnessPage(value: String, warning: Boolean) = snap(
+        displayList,
+        el(2, label = "Dark mode settings", clickable = true, bounds = listOf(0, 1072, 1080, 1316)),
+        el(3, text = value, bounds = listOf(144, 1448, 936, 1532)),
+        *(if (warning) arrayOf(el(4, text = "HIGH POWER CONSUMPTION", bounds = listOf(569, 1536, 1008, 1580))) else emptyArray()),
+        el(5, label = "Auto brightness · On", clickable = true, bounds = listOf(0, 1580, 1080, 1736)),
+        el(6, label = "Eye comfort", clickable = true, bounds = listOf(0, 1820, 1080, 1976)),
+        pkg = "com.android.settings", windowId = 7,
+    )
+
+    @Test fun liveValuesDoNotFinishAScrollStep() = runTest {
+        val r = rig(brightnessPage("501", warning = false))
+        r.planner.then(PlanResponse(action = "scroll", elementId = 1, scrollDirection = "down", sayUrdu = "نیچے سکرول کریں", sayRoman = "Neeche scroll karein", goalKey = "settings_font_size"))
+        r.session.submitGoal("Phone ke likhai bari karni hai")
+        runCurrent()
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+
+        // The slider changes and a warning label appears; the list itself emits a scroll event.
+        r.screen.current = brightnessPage("872", warning = true)
+        r.session.onEvent(ScreenEvent(ScreenEvent.Type.WINDOW_CONTENT, "com.android.settings"))
+        r.session.onEvent(ScreenEvent(ScreenEvent.Type.SCROLLED, "com.android.settings", source = SourceInfo(bounds = listOf(0, 294, 1080, 2400))))
+        settle()
+        advanceTimeBy(5000)
+        runCurrent()
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+        assertTrue(r.session.history.isEmpty())
+        assertEquals(1, r.planner.requests.size)
+    }
+
+    @Test fun liveValuesWhilePlanningDoNotCauseReplans() = runTest {
+        val r = rig(brightnessPage("501", warning = false))
+        r.planner.gate = CompletableDeferred()
+        r.planner.then(tap(5, "Auto brightness dabayein"))
+        r.session.submitGoal("brightness")
+        runCurrent()
+        r.screen.current = brightnessPage("872", warning = true)
+        r.session.onEvent(ScreenEvent(ScreenEvent.Type.WINDOW_CONTENT, "com.android.settings"))
+        r.planner.gate!!.complete(Unit)
+        runCurrent()
+        assertEquals(1, r.planner.requests.size)
+        assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
+    }
 }

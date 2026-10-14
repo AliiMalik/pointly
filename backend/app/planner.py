@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from . import masking, prompts
 from .llm.base import LLMError, LLMProvider, Turn
 from .logs import JsonlLog
-from .schemas import ELEMENT_ACTIONS, LLMPlan, PlanRequest, PlanResponse
+from .schemas import DIRECTION_ACTIONS, ELEMENT_ACTIONS, LLMPlan, PlanRequest, PlanResponse
 
 MAX_ROMAN_WORDS = 12
 # Urdu script often puts spaces inside one spoken word (e.g. "واٹس ایپ"), so it gets more room.
@@ -76,9 +76,9 @@ def validate_plan(raw: dict, ids: set[int]) -> tuple[LLMPlan | None, str | None]
             return None, f"element_id {plan.element_id} is not on the screen; use one of the listed ids"
     else:
         plan.element_id = None
-    if plan.action == "scroll":
+    if plan.action in DIRECTION_ACTIONS:
         if plan.scroll_direction is None:
-            return None, 'scroll_direction is required for "scroll" (up, down, left or right)'
+            return None, f'scroll_direction is required for "{plan.action}" (up, down, left or right)'
     else:
         plan.scroll_direction = None
 

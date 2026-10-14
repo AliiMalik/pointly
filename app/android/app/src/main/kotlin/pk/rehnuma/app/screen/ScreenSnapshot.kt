@@ -18,6 +18,7 @@ data class ScreenElement(
     val checked: Boolean? = null,
     val selected: Boolean? = null,
     val bounds: List<Int>,            // [left, top, right, bottom] in screen pixels
+    val range: List<Float>? = null,   // sliders: [min, max, current]
 ) {
     /** What a user would read on this element. */
     val displayLabel: String?
@@ -94,6 +95,16 @@ data class TargetSignature(
         )
     }
 }
+
+/**
+ * Finds a slider again after the screen moved. Its own text is usually its value (it changes when
+ * the user drags it), and live previews can shift the layout, so look for the same kind of control
+ * nearest to where it was.
+ */
+fun ScreenSnapshot.sameControlNear(e: ScreenElement, maxDistancePx: Int = 160): ScreenElement? =
+    elements.filter { it.cls == e.cls }
+        .minByOrNull { kotlin.math.abs(it.centerX - e.centerX) + kotlin.math.abs(it.centerY - e.centerY) }
+        ?.takeIf { kotlin.math.abs(it.centerX - e.centerX) + kotlin.math.abs(it.centerY - e.centerY) <= maxDistancePx }
 
 object Labels {
     private val SPACES = Regex("\\s+")

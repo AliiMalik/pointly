@@ -28,6 +28,9 @@ sealed class PointerTarget {
     data class Element(val bounds: List<Int>) : PointerTarget()
     data class Scroll(val bounds: List<Int>, val direction: String) : PointerTarget()
     data class Nav(val kind: String) : PointerTarget() // "back" | "home"
+
+    /** A slider: the finger starts at the thumb ([start], 0..1 along the track) and moves [direction]. */
+    data class Drag(val bounds: List<Int>, val direction: String, val start: Float) : PointerTarget()
 }
 
 /**
@@ -151,6 +154,7 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
         val targetTop = when (target) {
             is PointerTarget.Element -> (target.bounds[1] + target.bounds[3]) / 2 < screenH / 2
             is PointerTarget.Scroll -> (target.bounds[1] + target.bounds[3]) / 2 < screenH / 2
+            is PointerTarget.Drag -> (target.bounds[1] + target.bounds[3]) / 2 < screenH / 2
             is PointerTarget.Nav -> false
             null -> false
         }
@@ -215,6 +219,7 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
             when (t) {
                 is PointerTarget.Element -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
                 is PointerTarget.Scroll -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
+                is PointerTarget.Drag -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
                 is PointerTarget.Nav -> box.set(width / 2f - 60 * d, height - 72 * d, width / 2f + 60 * d, height.toFloat())
                 null -> box.setEmpty()
             }
@@ -230,6 +235,7 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
             when (t) {
                 is PointerTarget.Element -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
                 is PointerTarget.Scroll -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
+                is PointerTarget.Drag -> box.set(t.bounds[0] - ox.toFloat(), t.bounds[1] - oy.toFloat(), t.bounds[2] - ox.toFloat(), t.bounds[3] - oy.toFloat())
                 else -> Unit
             }
             // Skip the fly-in: the hand jumps to the new spot and keeps tapping.
@@ -287,6 +293,7 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
                     is PointerTarget.Element -> drawTapHand(canvas, elapsed, box.centerX(), box.centerY())
                     is PointerTarget.Nav -> drawTapHand(canvas, elapsed, box.centerX(), height - 36 * d)
                     is PointerTarget.Scroll -> drawScrollHand(canvas, elapsed, t.direction)
+                    is PointerTarget.Drag -> drawDragHand(canvas, elapsed, t)
                 }
             }
             postInvalidateOnAnimation()
@@ -335,6 +342,28 @@ class PointerOverlay(context: Context) : FullScreenOverlay(context, FrameLayout(
             c.drawLine(x0, y0, x, y, ripple)
             hand.alpha = if (cycle > 0.85f) ((1f - cycle) / 0.15f * 255).toInt() else 255
             hand.draw(c, x, y, 1f, mirror = x + 48 * d > width, flip = y + 88 * d > height)
+            hand.alpha = 255
+        }
+
+        /** Press on the slider's thumb, slide the way the user should move it, lift; repeating. */
+        private fun drawDragHand(c: Canvas, elapsed: Long, t: PointerTarget.Drag) {
+            val cycle = (elapsed % SWIPE_MS) / SWIPE_MS.toFloat()
+            val start = t.start.coerceIn(0.03f, 0.97f)
+            val (x0, y0, x1, y1) = when (t.direction) {
+                "left" -> listOf(box.left + box.width() * start, box.centerY(), box.left + box.width() * 0.03f, box.centerY())
+                "up" -> listOf(box.centerX(), box.bottom - box.height() * start, box.centerX(), box.top + box.height() * 0.03f)
+                "down" -> listOf(box.centerX(), box.bottom - box.height() * start, box.centerX(), box.bottom - box.height() * 0.03f)
+                else -> listOf(box.left + box.width() * start, box.centerY(), box.right - box.width() * 0.03f, box.centerY())
+            }
+            // 0-0.15 press on the thumb, 0.15-0.75 slide, then fade out.
+            val f = ((cycle - 0.15f) / 0.6f).coerceIn(0f, 1f)
+            val x = x0 + (x1 - x0) * f
+            val y = y0 + (y1 - y0) * f
+            ripple.alpha = 200
+            c.drawLine(x0, y0, x, y, ripple)
+            if (cycle < 0.15f) c.drawCircle(x0, y0, (8 + 40 * cycle) * d, ripple)
+            hand.alpha = if (cycle > 0.85f) ((1f - cycle) / 0.15f * 255).toInt() else 255
+            hand.draw(c, x, y, if (cycle < 0.15f) 0.9f else 1f, mirror = x + 48 * d > width, flip = y + 88 * d > height)
             hand.alpha = 255
         }
 

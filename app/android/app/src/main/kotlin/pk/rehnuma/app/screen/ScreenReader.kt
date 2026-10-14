@@ -60,7 +60,8 @@ class ScreenReader(private val service: AccessibilityService) {
                         val clickable = node.isClickable || node.isLongClickable
                         val checkable = node.isCheckable
                         val scrollable = node.isScrollable
-                        val interactive = clickable || editable || checkable || scrollable
+                        val range = node.rangeInfo?.let { listOf(it.min, it.max, it.current) }
+                        val interactive = clickable || editable || checkable || scrollable || range != null
                         val own = text ?: desc
                         val keep = interactive || (own != null && own !in covered)
                         if (keep) {
@@ -93,6 +94,7 @@ class ScreenReader(private val service: AccessibilityService) {
                                 selected = if (node.isSelected) true else null,
                                 interactive = interactive,
                                 bounds = listOf(bounds.left, bounds.top, bounds.right, bounds.bottom),
+                                range = range,
                             )
                         }
                     }

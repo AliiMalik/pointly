@@ -231,3 +231,17 @@ def test_roman_in_urdu_triggers_retry(make_client, auth, example_request, good_a
     body = post(make_client(fake), example_request, auth).json()
     assert body["say_urdu"] == good_answer["say_urdu"]
     assert "Urdu script" in fake.calls[1][-1].text
+
+
+def test_drag_needs_slider_element_and_direction(good_answer):
+    plan, err = validate_plan(dict(good_answer, action="drag", element_id=2), IDS)
+    assert plan is None and 'scroll_direction is required for "drag"' in err
+    plan, err = validate_plan(dict(good_answer, action="drag", element_id=2, scroll_direction="right"), IDS)
+    assert err is None and plan.scroll_direction == "right"
+    plan, err = validate_plan(dict(good_answer, action="drag", element_id=None, scroll_direction="right"), IDS)
+    assert plan is None and "element_id is required" in err
+
+
+def test_slider_shows_its_value_range():
+    e = Element(id=21, text="2", cls="SeekBar", range=[0, 4, 2], bounds=[120, 1775, 959, 1859])
+    assert prompts.element_line(e) == '#21 [SeekBar, slider 2 of 0-4] "2" @ (120,1775)-(959,1859)'

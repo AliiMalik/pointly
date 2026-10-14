@@ -17,6 +17,7 @@ data class RawElement(
     val selected: Boolean? = null,
     val interactive: Boolean = clickable || editable || scrollable,
     val bounds: List<Int>,
+    val range: List<Float>? = null,
 )
 
 /** Capping, reading order, ids and the screen signature (SPEC 5.2, 9.2). */
@@ -52,6 +53,7 @@ object ElementOrdering {
                 checked = r.checked,
                 selected = r.selected,
                 bounds = r.bounds,
+                range = r.range,
             )
         }
     }

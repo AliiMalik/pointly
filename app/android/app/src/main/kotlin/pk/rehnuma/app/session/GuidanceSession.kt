@@ -18,6 +18,8 @@ import pk.rehnuma.app.screen.Masking
 import pk.rehnuma.app.screen.SafetyGuard
 import pk.rehnuma.app.screen.ScreenElement
 import pk.rehnuma.app.screen.ScreenSnapshot
+import pk.rehnuma.app.screen.TargetSignature
+import pk.rehnuma.app.screen.sameControlNear
 import pk.rehnuma.app.voice.Phrase
 import java.util.UUID
 
@@ -247,7 +249,8 @@ class GuidanceSession(
             ScreenEvent.Type.SCROLLED -> {
                 settle.mark()
                 val s = step ?: return
-                if (state == SessionState.WAITING_FOR_USER && s.verifier.onScrolled(e.source)) stepDone(s, "done")
+                // A scroll event alone is not proof (live widgets emit them too): check that rows moved.
+                if (state == SessionState.WAITING_FOR_USER && s.verifier.onScrolled(e.source)) scheduleCheck(fromNow = true)
             }
         }
     }
@@ -311,6 +314,20 @@ class GuidanceSession(
             StepVerifier.Verdict.PROGRESS -> stepDone(s, "done", next = snapshot)
             StepVerifier.Verdict.DEVIATION -> stepDone(s, "deviated", next = snapshot, phrase = Phrase.DEVIATION)
         }
+    }
+
+    /** Where the slider's thumb is, 0..1 along the track (middle when the app does not say). */
+    private fun thumbAt(e: ScreenElement): Float {
+        val r = e.range ?: return 0.5f
+        val span = r[1] - r[0]
+        return if (span > 0f) ((r[2] - r[0]) / span).coerceIn(0f, 1f) else 0.5f
+    }
+
+    private fun targetGone(plan: PlanResponse, planned: ScreenSnapshot, now: ScreenSnapshot): Boolean {
+        val target = plan.elementId?.let { planned.element(it) } ?: return false
+        if (TargetSignature.of(planned.packageName, target).findIn(now) != null) return false
+        // Sliders are named by their value, which may just have changed: look by place instead.
+        return target.range == null || now.sameControlNear(target) == null
     }
 
     /** Keeps the pointer on the target when the same screen shifts (new message, expanded item). */
@@ -472,12 +489,20 @@ class GuidanceSession(
                 if (dirty && replans < MAX_REPLANS) {
                     // The screen moved while we were thinking: make sure the plan still fits.
                     val now = screen.read()
-                    if (now != null && (now.signature != snapshot.signature || now.windowId != snapshot.windowId)) {
+                    // Re-plan only if we left the screen or the chosen element is gone; live values
+                    // changing (a slider, a clock) must not cost another planner call.
+                    if (now != null && (now.windowId != snapshot.windowId || now.packageName != snapshot.packageName ||
+                            targetGone(result.value, snapshot, now))
+                    ) {
                         stepIndex--
                         settledAt = clock()
                         planFrom(now, replans + 1)
                         return
                     }
+                    if (goalKey == null) goalKey = result.value.goalKey
+                    handlePlan(result.value, snapshot, fromCache = false, plannerMs = result.ms)
+                    if (now != null) step?.let { follow(it, now) } // the target may have moved a little
+                    return
                 }
                 if (goalKey == null) goalKey = result.value.goalKey
                 handlePlan(result.value, snapshot, fromCache = false, plannerMs = result.ms)
@@ -487,7 +512,7 @@ class GuidanceSession(
 
     private fun handlePlan(plan: PlanResponse, snapshot: ScreenSnapshot, fromCache: Boolean, plannerMs: Long?) {
         when (plan.action) {
-            PlanResponse.TAP, PlanResponse.TYPE, PlanResponse.SCROLL -> {
+            PlanResponse.TAP, PlanResponse.TYPE, PlanResponse.SCROLL, PlanResponse.DRAG -> {
                 val target = plan.elementId?.let { snapshot.element(it) }
                 if (target == null) {
                     endWith(Phrase.CANT_HELP)
@@ -588,6 +613,7 @@ class GuidanceSession(
 
     private fun pointerTarget(s: Step): PointerTarget = when (s.plan.action) {
         PlanResponse.SCROLL -> PointerTarget.Scroll(s.target!!.bounds, s.plan.scrollDirection ?: "down")
+        PlanResponse.DRAG -> PointerTarget.Drag(s.target!!.bounds, s.plan.scrollDirection ?: "right", thumbAt(s.target!!))
         PlanResponse.BACK, PlanResponse.HOME -> PointerTarget.Nav(s.plan.action)
         else -> PointerTarget.Element(s.target!!.bounds)
     }
