@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../channel/rehnuma_channel.dart';
+import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
 import '../widgets/bilingual.dart';
 
-/// Session summary, export and the debug snapshot button (SPEC 10 item 5, SPEC 11).
 class MetricsScreen extends StatefulWidget {
   const MetricsScreen({super.key});
 
@@ -22,7 +21,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
   }
 
   Future<void> _load() async {
-    final s = await RehnumaChannel.getMetricsSummary();
+    final s = await PointlyChannel.getMetricsSummary();
     if (mounted) setState(() => _summary = s);
   }
 
@@ -35,7 +34,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
 
   Future<void> _snapshot() async {
     try {
-      await RehnumaChannel.saveSnapshot();
+      await PointlyChannel.saveSnapshot();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(S.metSnapshotHint.text)),
@@ -85,7 +84,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
           BigButton(
             label: S.metExport,
             icon: Icons.ios_share_rounded,
-            onPressed: () => RehnumaChannel.exportMetrics(),
+            onPressed: () => PointlyChannel.exportMetrics(),
           ),
           const SizedBox(height: 24),
           BiText(S.metDebug, size: 20),

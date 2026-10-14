@@ -34,8 +34,6 @@ def client_with(settings, provider=None, tts=None) -> TestClient:
     return TestClient(create_app(settings, provider=provider or FakeProvider(), tts_engine=tts or FakeTts()))
 
 
-# ---- /v1/stt ----
-
 def test_stt_transcribes_wav(settings, auth):
     fake = FakeProvider({"text": "بیٹی کو تصویر بھیجنی ہے"})
     r = client_with(settings, fake).post(
@@ -87,8 +85,6 @@ def test_stt_provider_down_is_503(settings, auth):
     assert r.status_code == 503
 
 
-# ---- /v1/tts ----
-
 def test_tts_returns_wav_and_caches(settings, auth):
     engine = FakeTts()
     c = client_with(settings, tts=engine)
@@ -97,7 +93,7 @@ def test_tts_returns_wav_and_caches(settings, auth):
         assert r.status_code == 200
         assert r.headers["content-type"] == "audio/wav"
         assert r.content[:4] == b"RIFF"
-    assert engine.calls == ["شاباش! کام ہو گیا۔"]  # second call served from the disk cache
+    assert engine.calls == ["شاباش! کام ہو گیا۔"]
     assert len(list(settings.tts_cache_dir.glob("*.wav"))) == 1
 
 
@@ -113,7 +109,7 @@ def test_tts_needs_key_and_text(settings, auth):
 
 
 def test_tts_unconfigured_is_503(settings, auth):
-    c = TestClient(create_app(settings, provider=FakeProvider()))  # TTS_MODEL not set
+    c = TestClient(create_app(settings, provider=FakeProvider()))
     assert c.post("/v1/tts", headers=auth, json={"text": "سلام"}).status_code == 503
 
 

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../channel/rehnuma_channel.dart';
+import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
 import '../main.dart';
 import '../widgets/bilingual.dart';
 
-/// Three pages: language and what Pointly does, the three promises, start (SPEC 10 item 1).
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,7 +27,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _pages.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       return;
     }
-    await RehnumaChannel.setConfig({'onboarded': true});
+    await PointlyChannel.setConfig({'onboarded': true});
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(Routes.permissions);
   }
@@ -64,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           selected: {Lang.code.value},
                           onSelectionChanged: (s) {
                             Lang.set(s.first);
-                            RehnumaChannel.setConfig({'language': s.first});
+                            PointlyChannel.setConfig({'language': s.first});
                           },
                         ),
                       ],

@@ -21,7 +21,7 @@ Pixel 10 Pro image (Android API 37), backend on the PC with the development mock
 | --- | --- | --- |
 | A1 | Pass | Bubble stays over Settings, launcher, YouTube, notification shade; taps through the pointer overlay reach the app (Settings opened "Display size & text") |
 | A2 | Pass (Settings, launcher, dialer) | Debug Boxes align at offset 0,0; warm reads 4–56 ms. WhatsApp and the wallet app still to check on the phone |
-| A3 | Pass with typed, quick-task and (mock) spoken goals | Home step when Rehnuma's own screen is in front → launcher → Settings → Display → Display size & text → done; spoken goal: 2.1 s of audio → transcript in 0.76 s → pointer |
+| A3 | Pass with typed, quick-task and (mock) spoken goals | Home step when Pointly's own screen is in front → launcher → Settings → Display → Display size & text → done; spoken goal: 2.1 s of audio → transcript in 0.76 s → pointer |
 | A4 | Pass | Tapped YouTube while the hand pointed at Phone: DEVIATION, next request carried `history_outcomes: ["done","deviated"]` |
 | A5 | Pass | Five font-size runs: FULL, FULL, HINT, HINT, SILENT for both steps (from `metrics.jsonl`); HINT showed only "Display size and text dabayein" without hand; SILENT showed only "Ab aap khud karein…" |
 | A6 | Pass (Android "Set a PIN" screen as the stand-in) | SENSITIVE_PAUSE with lock bubble and caption; backend plan calls stayed at 14 while on and typing into the PIN screen; metrics only `{event: sensitive_pause, package}`; guidance resumed after leaving. The screen-lock option lists were correctly *not* flagged |

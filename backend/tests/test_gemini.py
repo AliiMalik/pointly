@@ -36,7 +36,7 @@ async def test_busy_primary_falls_back_then_is_skipped():
     assert (await p.plan("sys", [Turn("user", "hi")], LLMPlan))["action"] == "done"
     assert fake.calls == ["main-model", "fallback-model"]
     await p.plan("sys", [Turn("user", "hi")], LLMPlan)
-    assert fake.calls[2:] == ["fallback-model"]  # primary skipped during cooldown
+    assert fake.calls[2:] == ["fallback-model"]
 
 
 async def test_healthy_primary_is_used():
@@ -55,6 +55,6 @@ async def test_no_fallback_configured_raises():
 
 def test_deadline_is_at_least_ten_seconds():
     p, _ = provider(set())
-    assert p.client is not None  # replaced; check the real constructor value instead
+    assert p.client is not None
     real = GeminiProvider(api_key="test", llm_model="m", stt_model="")
     assert real.client._api_client._http_options.timeout >= 10_000

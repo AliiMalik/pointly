@@ -1,12 +1,12 @@
-# Rehnuma build decisions
+# Pointly build decisions
 
 Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. Open questions from SPEC 15 that need the demo phone are tracked at the end.
 
 ## Phase 0: Skeleton (2026-10-14)
 
-- **Repository root** is `rehnuma/` with `app/` (Flutter), `backend/` (FastAPI), `tools/`, `docs/`, matching SPEC 3.2.
+- **Repository root** is `pointly/` with `app/` (Flutter), `backend/` (FastAPI), `tools/`, `docs/`, matching SPEC 3.2.
 - **Toolchain** (whatever this PC had): Flutter 3.44.0 stable / Dart 3.12, AGP 9.0.1, Kotlin 2.3.20, Gradle 9.1, JDK 17. Python 3.13 in `backend/.venv`.
-- **Android ids**: Dart package `rehnuma`, Android `namespace`/`applicationId` `pk.rehnuma.app`, `minSdk 26`, `targetSdk 35`.
+- **Android ids**: Dart package `pointly`, Android `namespace`/`applicationId` `pk.pointly.app`, `minSdk 26`, `targetSdk 35`.
 - **Kotlin libraries**: `kotlinx-serialization-json 1.9.0`, `kotlinx-coroutines-android 1.10.2`, `okhttp 4.12.0`, `androidx.core 1.16.0`. JVM unit tests use JUnit 4.
 - **Cleartext HTTP is allowed** (`usesCleartextTraffic="true"`). SPEC 6.9 runs the backend on a laptop on the same Wi-Fi (`http://192.168.x.x:8000`), which has no TLS. Use an HTTPS tunnel or cloud VM URL in Settings when available.
 - **Default backend URL** is `http://10.0.2.2:8000` (the host PC as seen from the Android emulator). On the demo phone set it in Settings.
@@ -30,7 +30,7 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
   - (d) needs clickable keys covering **all ten digits 0–9**. Counting ten elements would flag calendars with two months of single-digit days.
 - **Screen signature** (SPEC 9.2) folds digit runs to `#` before hashing, so a changing clock or unread count does not break PlanCache hits.
 - **Debug Boxes and rule 4**: while the developer turns on the Debug Boxes overlay, `onAccessibilityEvent` refreshes the boxes (debounced 300 ms). This counts as a visible, user-started debug session; nothing is logged or uploaded. With the overlay off and no guidance session, events return immediately.
-- **Debug snapshot file** uses the planner's request format so `eval_planner.py` can replay it unchanged: `{goal_text, expected, history, screen: {package, window_title, width, height, elements}, captured_at_ms, read_ms}`. `expected` is a list of acceptable answers such as `[{"action": "tap", "element_id": 13}]`, or `[{"action": "home"}]`. Sensitive screens are refused, not saved. The save waits 5 s so you can switch from Rehnuma to the target app.
+- **Debug snapshot file** uses the planner's request format so `eval_planner.py` can replay it unchanged: `{goal_text, expected, history, screen: {package, window_title, width, height, elements}, captured_at_ms, read_ms}`. `expected` is a list of acceptable answers such as `[{"action": "tap", "element_id": 13}]`, or `[{"action": "home"}]`. Sensitive screens are refused, not saved. The save waits 5 s so you can switch from Pointly to the target app.
 - **Emulator check (Pixel 10 Pro image, API 37)**: Debug Boxes align with Android Settings rows at offset (0,0); warm reads take 4–13 ms (the first cold read took 827 ms). Real-phone A2 checks on WhatsApp and the wallet app are still to do.
 
 ## Phase 2: Point (2026-10-14)
@@ -44,7 +44,7 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Back/Home** show a yellow arrow (up for home, left for back) above the navigation area with the hand tapping the bottom centre; the planner's caption explains gesture vs button navigation.
 - **Caption card**: dark rounded card with a yellow border, 20 sp (follows the system font scale), max 2 lines, on the opposite half from the target; at the bottom when there is no target. Urdu-script captions use `res/font/noto_nastaliq_urdu.ttf` if it is added (looked up by name at runtime), otherwise the system Arabic-script font with the `ur-PK` text locale. The emulator image has no system Nastaliq font.
 - **Quick panel** is a focusable full-screen overlay with a dimmed scrim, anchored to the top because accessibility overlays are not resized for the keyboard. Typing `#12` points at element 12 (manual test mode).
-- **Testing note:** `adb shell uiautomator dump` (and anything else using UiAutomation) makes Android suppress every other accessibility service while it runs. Rehnuma is unbound, its overlays disappear, and it rebinds a second later. Don't use UI dumps while testing overlays; use screenshots.
+- **Testing note:** `adb shell uiautomator dump` (and anything else using UiAutomation) makes Android suppress every other accessibility service while it runs. Pointly is unbound, its overlays disappear, and it rebinds a second later. Don't use UI dumps while testing overlays; use screenshots.
 - **Emulator check:** bubble stays on top of Settings; `#13` points exactly at "Display size & text"; tapping through the pointer overlay opens that screen (A1 touch pass-through).
 
 ## Phase 3: Plan (2026-10-14)
@@ -61,12 +61,12 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 ## Phase 4: Guide loop (2026-10-14)
 
 - **Pure-Kotlin core.** `GuidanceSession`, `StepVerifier` and `SettleDetector` never touch Android types. The service turns each `AccessibilityEvent` into a `ScreenEvent` (type, package, window id, and for clicks/typing/scrolling the source's view id, masked label and bounds; the node is released immediately) and implements small `SessionUi`/`SessionVoice` ports with the overlays. 17 JVM tests drive the whole loop on virtual time.
-- `TYPE_WINDOWS_CHANGED` is not forwarded: it also fires whenever our own overlays appear. Events from `pk.rehnuma.app` are ignored too.
+- `TYPE_WINDOWS_CHANGED` is not forwarded: it also fires whenever our own overlays appear. Events from `pk.pointly.app` are ignored too.
 - **Settle** (SPEC 5.6): after a tap or window change the 500 ms quiet period starts *now* (so the app has time to begin its transition); for the very first read a screen that is already quiet is read immediately. Hard cap 2.5 s.
 - **Tap verification** (SPEC 5.7): source bounds containing the target's centre is a match; a shared view id only matches if the labels agree (WhatsApp chat rows all share one id). A click with no source, or no click event at all, is judged by the next settled screen: window/package changed or target gone → progress (or deviation if a mismatched tap was seen); same screen after a mismatched tap → WRONG_TAP once per step.
 - **Deviation** stops the old instruction, says DEVIATION, records `outcome: deviated`, and plans from the new screen.
 - **Screen changed while planning**: the plan is checked against a fresh read; if the screen signature or window changed, the step is re-planned (up to 2 times) without counting an extra step.
-- **Rehnuma's own screen in front** (e.g. a quick task tapped on Home): the reader never reads our UI; the session shows a local "Home button dabayein ya neeche se upar swipe karein" step with the nav pointer, no planner call.
+- **Pointly's own screen in front** (e.g. a quick task tapped on Home): the reader never reads our UI; the session shows a local "Home button dabayein ya neeche se upar swipe karein" step with the nav pointer, no planner call.
 - **`done`** says DONE ("Shabash! Kaam ho gaya.") unless the planner's sentence contains "khud" (the user must finish a PIN/payment themselves), in which case that sentence is said instead. `cant_help` and the 25-step limit say CANT_HELP and end.
 - **Errors** show plain Urdu/Roman Urdu captions ("Internet ka masla hai. Dobara koshish ke liye bubble dabayein.") with the ↻ badge; technical details only go to the Flutter status line.
 - **Phase 4 has no speech yet**: a caption-only voice stands in until Phase 5.
@@ -119,14 +119,14 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - `/v1/stt` with Gemini works (200 in ~2 s, Urdu script plus Roman). Cloud TTS still needs `GOOGLE_APPLICATION_CREDENTIALS`.
 - The key lives only in `backend/.env` (git-ignored); `.env.example` stays blank.
 
-## English first, Urdu optional; display name Pointly (2026-10-14)
+## English first, Urdu optional; renamed to Pointly (2026-10-14)
 
 - **Language setting replaces the caption-script setting.** `language` is `en` (default) or `ur`. English means plain English captions, voice and app screens, with no Roman Urdu anywhere. Urdu means Urdu script, right-to-left screens and an Urdu voice. Old installs that chose Urdu script keep Urdu; everyone else moves to English.
 - **The planner returns `say_en` and `say_ur`** (was `say_urdu`/`say_roman`). The validator rejects non-English letters in `say_en` and Roman letters in `say_ur`; `HistoryItem.instruction` is the English sentence. STT returns one `text` field; `/v1/tts` takes `language` (`en-US` / `ur-PK`) and caches per language.
 - **Voice in/out follow the language**: device recognizer `en-US` or `ur-PK`, device TTS English or the Urdu voice when installed, otherwise the cloud with the same language.
 - **Quick tasks send the English goal** in both languages; only the label is translated. The planner understands goals typed or spoken in English, Urdu or Roman Urdu.
 - **"Done, the rest is yours"** is now detected by "yourself" in `say_en` or "خود" in `say_ur` (was "khud").
-- **Name: Pointly**, display only (launcher label, accessibility service label, bubble, notification, app screens). Package, channel names, `X-Rehnuma-Key` and class names stay so the rename can change again without touching APIs.
+- **Name: Pointly** everywhere: launcher and service labels, bubble, notification, app screens, and also the code: package `pk.pointly.app`, class names, Dart package, method/event channels (`pointly/control`, `pointly/events`), the `X-Pointly-Key` header and `POINTLY_APP_KEY`. Builds made before the rename used another package id, so an older install shows up as a separate app; uninstall it.
 - Not re-run on a device after this change (no phone or emulator attached); covered by unit and widget tests (backend 73, Kotlin 107, Flutter 21). The live Gemini eval should be re-run once with the new field names before the final.
 
 ## Open questions (SPEC 15), to answer on the demo phone

@@ -1,5 +1,3 @@
-"""Planner prompt (SPEC 6.6): system text, compact screen format and two few-shot turns."""
-
 import json
 
 from .schemas import Element, HistoryItem, PlanRequest
@@ -58,7 +56,6 @@ SCREEN (package={package}, size={width}x{height}{title}):
 
 
 def element_line(e: Element) -> str:
-    """`#2 [View, clickable] "Sara | Sara · Kal milte hain" @ (0,420)-(1080,560)` (SPEC 6.4 step 3)."""
     flags = [e.cls]
     if e.clickable:
         flags.append("clickable")
@@ -117,7 +114,6 @@ def _req(goal: str, step: int, history: list[dict], package: str, elements: list
     })
 
 
-# Two worked examples sent as earlier conversation turns (SPEC 6.6).
 FEW_SHOT: list[tuple[str, str]] = [
     (
         user_message(_req(
@@ -181,7 +177,6 @@ FEW_SHOT: list[tuple[str, str]] = [
 
 
 def correction_message(error: str) -> str:
-    """Extra user turn for the one retry after an invalid answer (SPEC 6.4 step 5)."""
     return (
         f"Your last answer was invalid: {error}\n"
         "Answer again for the same GOAL and SCREEN. Return only JSON that matches the schema."

@@ -43,8 +43,6 @@ GOOD_ANSWER = {
 
 
 class FakeProvider:
-    """Returns queued answers. A dict is the model's JSON, a str is non-JSON text, an Exception is raised."""
-
     def __init__(self, *answers):
         self.answers = list(answers)
         self.calls: list[list[Turn]] = []
@@ -74,7 +72,7 @@ def settings(tmp_path) -> Settings:
         gemini_api_key="",
         llm_model="test-model",
         stt_model="test-model",
-        rehnuma_app_key=TEST_KEY,
+        pointly_app_key=TEST_KEY,
         log_dir=tmp_path / "logs",
         tts_cache_dir=tmp_path / "tts_cache",
     )
@@ -95,7 +93,7 @@ def make_client(settings):
 
 @pytest.fixture
 def auth() -> dict:
-    return {"X-Rehnuma-Key": TEST_KEY}
+    return {"X-Pointly-Key": TEST_KEY}
 
 
 @pytest.fixture

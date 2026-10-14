@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rehnuma/channel/rehnuma_channel.dart';
-import 'package:rehnuma/l10n/strings.dart';
+import 'package:pointly/channel/pointly_channel.dart';
+import 'package:pointly/l10n/strings.dart';
 
 void main() {
-  test('RehnumaState parses the EventChannel map', () {
-    final s = RehnumaState.fromMap({
+  test('PointlyState parses the EventChannel map', () {
+    final s = PointlyState.fromMap({
       'state': 'POINTING',
       'goalText': 'Turn on WiFi',
       'step': 2,
@@ -18,7 +18,7 @@ void main() {
   });
 
   test('missing state falls back to IDLE', () {
-    expect(RehnumaState.fromMap({}).state, 'IDLE');
+    expect(PointlyState.fromMap({}).state, 'IDLE');
   });
 
   test('five quick tasks from SPEC 8.4', () {

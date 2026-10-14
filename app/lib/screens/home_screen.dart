@@ -3,25 +3,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../channel/rehnuma_channel.dart';
+import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
 import '../main.dart';
 import '../widgets/bilingual.dart';
 
-/// Start/stop button, the five quick tasks and the live session state (SPEC 10 item 3).
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.states});
 
-  /// Session states to show; defaults to the core's EventChannel (tests pass their own).
-  final Stream<RehnumaState>? states;
+  final Stream<PointlyState>? states;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  StreamSubscription<RehnumaState>? _sub;
-  RehnumaState _state = RehnumaState.idle;
+  StreamSubscription<PointlyState>? _sub;
+  PointlyState _state = PointlyState.idle;
   bool _bubbleOn = false;
   bool _serviceOn = false;
 
@@ -29,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _sub = (widget.states ?? RehnumaChannel.states).listen((s) => setState(() => _state = s));
+    _sub = (widget.states ?? PointlyChannel.states).listen((s) => setState(() => _state = s));
     _refresh();
   }
 
@@ -46,8 +44,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refresh() async {
-    final service = await RehnumaChannel.isServiceEnabled();
-    final bubble = await RehnumaChannel.isBubbleVisible();
+    final service = await PointlyChannel.isServiceEnabled();
+    final bubble = await PointlyChannel.isBubbleVisible();
     if (mounted) {
       setState(() {
         _serviceOn = service;
@@ -57,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<bool> _ensureService() async {
-    if (await RehnumaChannel.isServiceEnabled()) return true;
+    if (await PointlyChannel.isServiceEnabled()) return true;
     if (!mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(S.homeServiceOff.text)),
@@ -70,9 +68,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!await _ensureService()) return;
     try {
       if (_bubbleOn) {
-        await RehnumaChannel.hideBubble();
+        await PointlyChannel.hideBubble();
       } else {
-        await RehnumaChannel.showBubble();
+        await PointlyChannel.showBubble();
       }
     } on PlatformException catch (e) {
       _showError(e);
@@ -83,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _quickTask(Bi task) async {
     if (!await _ensureService()) return;
     try {
-      await RehnumaChannel.startQuickTask(task.en);
+      await PointlyChannel.startQuickTask(task.en);
     } on PlatformException catch (e) {
       _showError(e);
     }

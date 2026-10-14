@@ -178,7 +178,7 @@ python -m venv .venv
 cp .env.example .env
 ```
 
-Edit `.env`: set `GEMINI_API_KEY` and choose any `REHNUMA_APP_KEY` (for example `demo-key`).
+Edit `.env`: set `GEMINI_API_KEY` and choose any `POINTLY_APP_KEY` (for example `demo-key`).
 **No Gemini key?** Set `LLM_PROVIDER=mock` to rehearse the full loop with a keyword planner.
 
 ```bash

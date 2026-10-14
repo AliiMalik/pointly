@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../channel/rehnuma_channel.dart';
+import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
 import '../main.dart';
 import '../widgets/bilingual.dart';
 
-/// Live checklist of accessibility, microphone and notifications (SPEC 10 item 2).
-/// Status refreshes whenever the app resumes, e.g. after returning from system settings.
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});
 
@@ -36,7 +34,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
   }
 
   Future<void> _refresh() async {
-    final s = await RehnumaChannel.getPermissions();
+    final s = await PointlyChannel.getPermissions();
     if (mounted) setState(() => _status = s);
   }
 
@@ -52,20 +50,20 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
             label: S.permAccessibility,
             granted: _status.accessibility,
             action: S.permOpen,
-            onPressed: RehnumaChannel.openAccessibilitySettings,
+            onPressed: PointlyChannel.openAccessibilitySettings,
             help: S.permAccessibilityHelp,
           ),
           _PermissionRow(
             label: S.permMicrophone,
             granted: _status.microphone,
             action: S.permGrant,
-            onPressed: () => RehnumaChannel.requestPermission('microphone'),
+            onPressed: () => PointlyChannel.requestPermission('microphone'),
           ),
           _PermissionRow(
             label: S.permNotifications,
             granted: _status.notifications,
             action: S.permGrant,
-            onPressed: () => RehnumaChannel.requestPermission('notifications'),
+            onPressed: () => PointlyChannel.requestPermission('notifications'),
           ),
           const SizedBox(height: 24),
           BigButton(

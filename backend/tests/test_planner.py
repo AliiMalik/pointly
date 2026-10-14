@@ -13,7 +13,7 @@ def post(client, req, auth):
 def test_plan_needs_key(make_client, example_request, good_answer):
     c = make_client(FakeProvider(good_answer))
     assert c.post("/v1/plan", json=example_request).status_code == 401
-    assert c.post("/v1/plan", json=example_request, headers={"X-Rehnuma-Key": "wrong"}).status_code == 401
+    assert c.post("/v1/plan", json=example_request, headers={"X-Pointly-Key": "wrong"}).status_code == 401
 
 
 def test_good_plan(make_client, auth, example_request, good_answer):
@@ -109,8 +109,6 @@ def test_log_screens_includes_masked_elements(make_client, auth, example_request
     rec = json.loads((settings.log_dir / "plan.jsonl").read_text(encoding="utf-8").splitlines()[-1])
     assert rec["elements"][0]["text"] == "[number]"
 
-
-# ---- validate_plan unit checks ----
 
 IDS = {1, 2, 3}
 

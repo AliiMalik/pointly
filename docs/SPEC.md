@@ -1,17 +1,17 @@
-# Rehnuma: MVP Build Specification
+# Pointly: MVP Build Specification
 
 Version 1.0 · 14 October 2026 · Owner: Ali Malik and Laiba Sattar
 Target: working Android MVP for a live demo at the 4th International AI Championship (final on 24 October 2026).
 
-> **How to use this file (for Claude Code):** Read the whole file once. Then build in the order of Section 13 (Build Phases), one phase at a time. Finish each phase's "Definition of done" before starting the next. When something in this spec is ambiguous, prefer the simplest option that keeps the Non-negotiable rules (Section 2) true, and write the decision into `docs/DECISIONS.md`.
+> **How to use this file:** Read the whole file once. Then build in the order of Section 13 (Build Phases), one phase at a time. Finish each phase's "Definition of done" before starting the next. When something in this spec is ambiguous, prefer the simplest option that keeps the Non-negotiable rules (Section 2) true, and write the decision into `docs/DECISIONS.md`.
 
 ---
 
 ## 1. Product summary
 
-Rehnuma is an Android app that helps first-time and low-literacy smartphone users complete tasks in other apps. The user holds a floating bubble and says in Urdu what they want to do ("Beti ko WhatsApp pe photo bhejni hai"). Rehnuma reads the current screen through Android's Accessibility Service, asks an LLM which single on-screen element the user should press next, then draws an animated hand pointing at that element and speaks a short Urdu instruction. **The user always taps themselves.** Rehnuma detects the tap, waits for the next screen, and guides the next step until the task is done. When the user repeats a task, Rehnuma gives less help ("fading"), so the user actually learns.
+Pointly is an Android app that helps first-time and low-literacy smartphone users complete tasks in other apps. The user holds a floating bubble and says in Urdu what they want to do ("Beti ko WhatsApp pe photo bhejni hai"). Pointly reads the current screen through Android's Accessibility Service, asks an LLM which single on-screen element the user should press next, then draws an animated hand pointing at that element and speaks a short Urdu instruction. **The user always taps themselves.** Pointly detects the tap, waits for the next screen, and guides the next step until the task is done. When the user repeats a task, Pointly gives less help ("fading"), so the user actually learns.
 
-Inspiration: heyClicky (Mac AI buddy that points at the button to click). Rehnuma brings that interaction to Android, in Urdu, for people using a smartphone for the first time, and never acts on their behalf.
+Inspiration: heyClicky (Mac AI buddy that points at the button to click). Pointly brings that interaction to Android, in Urdu, for people using a smartphone for the first time, and never acts on their behalf.
 
 ### 1.1 Users
 - Primary: elderly and low-literacy Urdu speakers who use WhatsApp, phone settings and wallet apps.
@@ -44,9 +44,9 @@ Inspiration: heyClicky (Mac AI buddy that points at the button to click). Rehnum
 
 These rules override everything else in this spec. Add tests or checks for them where possible.
 
-1. **Never act for the user.** The code must never call `performAction` (click, long click, set text, scroll or any other action), never call `dispatchGesture`, never call `performGlobalAction`, and never launch other apps. The only allowed launch is opening Android's accessibility settings page from Rehnuma's own Permissions screen. The accessibility service XML must **not** declare `android:canPerformGestures`. Add a check script (`tools/check_no_actions.sh`) that fails if any of `performAction`, `dispatchGesture`, `performGlobalAction`, `takeScreenshot`, `MediaProjection` or `getLaunchIntentForPackage` appear in Kotlin or Dart sources.
+1. **Never act for the user.** The code must never call `performAction` (click, long click, set text, scroll or any other action), never call `dispatchGesture`, never call `performGlobalAction`, and never launch other apps. The only allowed launch is opening Android's accessibility settings page from Pointly's own Permissions screen. The accessibility service XML must **not** declare `android:canPerformGestures`. Add a check script (`tools/check_no_actions.sh`) that fails if any of `performAction`, `dispatchGesture`, `performGlobalAction`, `takeScreenshot`, `MediaProjection` or `getLaunchIntentForPackage` appear in Kotlin or Dart sources.
 2. **No screenshots.** Do not use `takeScreenshot`, MediaProjection or any screen capture API. Only the accessibility node tree (text, labels, bounds) is read.
-3. **Sensitive screens are never sent anywhere.** If the SafetyGuard (Section 5.4) flags a screen, nothing from that screen leaves the phone, the pointer is hidden, and Rehnuma tells the user to fill it themselves.
+3. **Sensitive screens are never sent anywhere.** If the SafetyGuard (Section 5.4) flags a screen, nothing from that screen leaves the phone, the pointer is hidden, and Pointly tells the user to fill it themselves.
 4. **Read only during an active session.** `onAccessibilityEvent` must return immediately unless a guidance session is active. No background logging of screen content.
 5. **No persistent storage of screen content.** The only exception is a debug snapshot the user explicitly saves from the debug menu (Section 11).
 6. **Mask long numbers before sending.** Any digit sequence of 6 or more digits (with optional spaces or dashes) is replaced by `[number]` on the phone before upload, and again on the server.
@@ -59,7 +59,7 @@ These rules override everything else in this spec. Add tests or checks for them 
 ```
 ┌──────────────────────── Android phone ─────────────────────────┐
 │  Flutter app (screens)        Kotlin core (inside the app)       │
-│  ─ Onboarding                 ─ RehnumaAccessibilityService      │
+│  ─ Onboarding                 ─ PointlyAccessibilityService      │
 │  ─ Permissions checklist      ─ ScreenReader + SafetyGuard       │
 │  ─ Home + quick tasks   ◄──►  ─ GuidanceSession (state machine)  │
 │  ─ Settings                   ─ BubbleOverlay + PointerOverlay   │
@@ -82,7 +82,7 @@ These rules override everything else in this spec. Add tests or checks for them 
 | --- | --- | --- |
 | App screens | Flutter (stable channel), Dart | Team's main skill |
 | Core (service, overlay, audio) | Kotlin, native Android Views | Overlays and accessibility APIs are native; a Flutter engine inside the overlay is unnecessary |
-| Flutter ↔ Kotlin | `MethodChannel("rehnuma/control")`, `EventChannel("rehnuma/events")` | Small, explicit surface |
+| Flutter ↔ Kotlin | `MethodChannel("pointly/control")`, `EventChannel("pointly/events")` | Small, explicit surface |
 | HTTP client (Kotlin) | OkHttp + kotlinx.serialization | Simple, reliable |
 | Local storage (Kotlin) | Small JSON files in `filesDir` via kotlinx.serialization | No DB needed for MVP |
 | Backend | Python 3.11+, FastAPI, Pydantic v2, `google-genai` SDK | Team knows FastAPI; key stays off the phone |
@@ -92,11 +92,11 @@ These rules override everything else in this spec. Add tests or checks for them 
 
 ### 3.2 Repository layout
 ```
-rehnuma/
+pointly/
 ├── app/                                  # Flutter project
 │   ├── lib/
 │   │   ├── main.dart
-│   │   ├── channel/rehnuma_channel.dart  # MethodChannel/EventChannel wrapper
+│   │   ├── channel/pointly_channel.dart  # MethodChannel/EventChannel wrapper
 │   │   ├── screens/onboarding_screen.dart
 │   │   ├── screens/permissions_screen.dart
 │   │   ├── screens/home_screen.dart
@@ -106,12 +106,12 @@ rehnuma/
 │   ├── assets/fonts/NotoNastaliqUrdu-Regular.ttf
 │   └── android/app/src/main/
 │       ├── AndroidManifest.xml
-│       ├── res/xml/rehnuma_accessibility_service.xml
+│       ├── res/xml/pointly_accessibility_service.xml
 │       ├── res/drawable/ (hand pointer, bubble icons as vector drawables)
-│       └── kotlin/pk/rehnuma/app/
+│       └── kotlin/pk/pointly/app/
 │           ├── MainActivity.kt
-│           ├── bridge/RehnumaChannel.kt
-│           ├── service/RehnumaAccessibilityService.kt
+│           ├── bridge/PointlyChannel.kt
+│           ├── service/PointlyAccessibilityService.kt
 │           ├── screen/ScreenReader.kt
 │           ├── screen/ScreenSnapshot.kt          # data classes
 │           ├── screen/SafetyGuard.kt
@@ -152,32 +152,32 @@ rehnuma/
     └── DECISIONS.md
 ```
 
-Package name: `pk.rehnuma.app`.
+Package name: `pk.pointly.app`.
 
 ---
 
 ## 4. User flow (happy path)
 
-1. User opens the Rehnuma app once, completes onboarding and permissions, taps **"Rehnuma chalu karein"**. The bubble appears at the screen edge and stays on top of all apps.
+1. User opens the Pointly app once, completes onboarding and permissions, taps **"Pointly chalu karein"**. The bubble appears at the screen edge and stays on top of all apps.
 2. User goes to any screen (usually the home screen), **presses and holds the bubble** and says: "Beti Sara ko WhatsApp pe photo bhejni hai." Releasing the bubble ends listening.
-3. Rehnuma says "Ek second, dekh rahi hoon" while it reads the screen and calls the planner.
+3. Pointly says "Ek second, dekh rahi hoon" while it reads the screen and calls the planner.
 4. An animated hand flies from the bubble to the WhatsApp icon, a yellow ring pulses around it, a caption shows "Yeh hara WhatsApp icon dabayein", and the same sentence is spoken in Urdu.
-5. User taps the icon. Rehnuma detects the click, hides the pointer, waits for WhatsApp to settle, reads the new screen and points at the next element (Sara's chat).
+5. User taps the icon. Pointly detects the click, hides the pointer, waits for WhatsApp to settle, reads the new screen and points at the next element (Sara's chat).
 6. Steps continue: chat → attach (paperclip) → Gallery → photo → send.
-7. When the planner returns `done`, Rehnuma says "Shabash! Kaam ho gaya." and the session ends.
-8. The third time the user does the same task, Rehnuma only speaks short hints and shows the hand only if the user hesitates (Section 9).
+7. When the planner returns `done`, Pointly says "Shabash! Kaam ho gaya." and the session ends.
+8. The third time the user does the same task, Pointly only speaks short hints and shows the hand only if the user hesitates (Section 9).
 
-If the user taps the wrong thing, Rehnuma says "Koi baat nahi, ab yahan se chalte hain" and re-plans from the new screen.
+If the user taps the wrong thing, Pointly says "Koi baat nahi, ab yahan se chalte hain" and re-plans from the new screen.
 
-If a PIN or password screen appears, Rehnuma hides the pointer and says "Yeh screen aap khud bharein. Main ise nahi dekhti." It resumes when the screen no longer contains sensitive fields.
+If a PIN or password screen appears, Pointly hides the pointer and says "Yeh screen aap khud bharein. Main ise nahi dekhti." It resumes when the screen no longer contains sensitive fields.
 
 ---
 
 ## 5. Kotlin core: components
 
-### 5.1 RehnumaAccessibilityService
+### 5.1 PointlyAccessibilityService
 - Declare the service in the manifest with `android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"`, `android:exported="true"` (required so the system can bind to it; the permission protects it), an intent-filter for `android.accessibilityservice.AccessibilityService`, and a `meta-data` entry `android.accessibilityservice` pointing to the XML below.
-- `res/xml/rehnuma_accessibility_service.xml`:
+- `res/xml/pointly_accessibility_service.xml`:
   ```xml
   <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
       android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged|typeViewClicked|typeViewTextChanged|typeViewFocused|typeViewScrolled"
@@ -189,8 +189,8 @@ If a PIN or password screen appears, Rehnuma hides the pointer and says "Yeh scr
       android:description="@string/accessibility_service_description" />
   ```
   Do **not** add `canPerformGestures` or `canTakeScreenshot`.
-- `accessibility_service_description` (English + Urdu): explains that Rehnuma reads on-screen labels only while the user asks for help, never taps for the user, never takes screenshots, and stops reading on PIN or password screens.
-- Holds a static reference (`companion object { var instance: RehnumaAccessibilityService? }`) set in `onServiceConnected`, cleared in `onUnbind`/`onDestroy`, so `MainActivity` can call it.
+- `accessibility_service_description` (English + Urdu): explains that Pointly reads on-screen labels only while the user asks for help, never taps for the user, never takes screenshots, and stops reading on PIN or password screens.
+- Holds a static reference (`companion object { var instance: PointlyAccessibilityService? }`) set in `onServiceConnected`, cleared in `onUnbind`/`onDestroy`, so `MainActivity` can call it.
 - Owns: `GuidanceSession`, `BubbleOverlay`, `PointerOverlay`, `DebugBoxesOverlay`, `SpeechInput`, `SpeechOutput`.
 - `onAccessibilityEvent(event)`: if no active session → return immediately. Otherwise forward to `GuidanceSession.onEvent(event)`.
 - Shows a persistent foreground-style notification while the bubble is visible, with action **"Band karein"** that stops the session and hides the bubble. (Request `POST_NOTIFICATIONS` on Android 13+ from the Flutter app.)
@@ -200,7 +200,7 @@ Produces a `ScreenSnapshot` of the current app window.
 
 Window selection:
 1. Iterate `windows` (available because of `flagRetrieveInteractiveWindows`).
-2. Ignore windows whose root package is `pk.rehnuma.app` (our own overlays) and windows of type `TYPE_INPUT_METHOD` (keyboard) and `TYPE_ACCESSIBILITY_OVERLAY`.
+2. Ignore windows whose root package is `pk.pointly.app` (our own overlays) and windows of type `TYPE_INPUT_METHOD` (keyboard) and `TYPE_ACCESSIBILITY_OVERLAY`.
 3. Prefer the focused/active `TYPE_APPLICATION` window. If a `TYPE_SYSTEM` window (for example a permission dialog) is on top and active, use it.
 4. Fallback: `rootInActiveWindow`.
 
@@ -339,7 +339,7 @@ A click that clearly does not match (different element, same screen stays) → s
 
 ### 5.12 PlannerClient
 - OkHttp, base URL and app key from `AppConfig` (Settings, stored in SharedPreferences).
-- Header `X-Rehnuma-Key: <key>`.
+- Header `X-Pointly-Key: <key>`.
 - Timeouts: connect 3 s, read 8 s. One retry on timeout/5xx.
 - Records `plannerMs` in metrics.
 
@@ -363,7 +363,7 @@ Never logs screen text. The Flutter Metrics screen reads summaries through the c
 | POST | `/v1/stt` | Transcribe Urdu speech (fallback path) |
 | POST | `/v1/tts` | Urdu speech audio (fallback path) |
 
-All endpoints except health require header `X-Rehnuma-Key` equal to env `REHNUMA_APP_KEY`; otherwise 401.
+All endpoints except health require header `X-Pointly-Key` equal to env `POINTLY_APP_KEY`; otherwise 401.
 
 ### 6.2 `/v1/plan` request
 ```json
@@ -434,7 +434,7 @@ Implement `GeminiProvider` with the `google-genai` SDK. Model IDs come from env 
 Use this text (tune wording if needed, keep the rules):
 
 ```
-You are Rehnuma, a patient guide that helps first-time smartphone users in Pakistan
+You are Pointly, a patient guide that helps first-time smartphone users in Pakistan
 complete tasks on Android. You NEVER act for the user. You only tell the user which ONE
 element on the current screen to press, type into or scroll next.
 
@@ -487,7 +487,7 @@ LLM_MODEL=            # current Gemini Flash model id, see docs/DECISIONS.md
 STT_MODEL=            # same family, audio-capable
 GOOGLE_APPLICATION_CREDENTIALS=
 TTS_MODEL=            # Gemini-TTS model id from Cloud Text-to-Speech docs
-REHNUMA_APP_KEY=change-me
+POINTLY_APP_KEY=change-me
 LOG_DIR=./logs
 LOG_SCREENS=false
 ```
@@ -518,7 +518,7 @@ Run locally with `uvicorn app.main:app --host 0.0.0.0 --port 8000`. For the demo
 ## 8. Language and content
 
 ### 8.1 Voice and tone
-Rehnuma speaks as a calm, respectful helper (feminine first person: "dekhti hoon", "sakti"). Short sentences. No technical words. Praise success briefly.
+Pointly speaks as a calm, respectful helper (feminine first person: "dekhti hoon", "sakti"). Short sentences. No technical words. Praise success briefly.
 
 ### 8.2 Captions
 Default Roman Urdu (easier for demo judges); Settings toggle for Urdu script with Noto Nastaliq Urdu.
@@ -575,17 +575,17 @@ When a new screen settles, start reading and planning immediately; do not wait f
 
 All screens bilingual (Urdu primary, English secondary line), large touch targets (≥ 56 dp), simple layout.
 
-1. **Onboarding (3 pages):** what Rehnuma does; the three promises ("Main khud kuch nahi dabati", "Sirf zaroorat pe dekhti hoon", "PIN wali screen nahi dekhti"); start button.
+1. **Onboarding (3 pages):** what Pointly does; the three promises ("Main khud kuch nahi dabati", "Sirf zaroorat pe dekhti hoon", "PIN wali screen nahi dekhti"); start button.
 2. **Permissions checklist:** live status rows with buttons:
    - Accessibility service on → opens `Settings.ACTION_ACCESSIBILITY_SETTINGS`. Show help text for Android 13+ sideloaded apps: "Agar setting band ho: App info → ⋮ → Allow restricted settings."
    - Microphone (runtime permission).
    - Notifications (Android 13+).
    Status refreshes on resume via `isServiceEnabled`.
-3. **Home:** big button "Rehnuma chalu karein / band karein", the 5 quick tasks (each starts a session with that goal and shows the bubble), current state text from `EventChannel`.
+3. **Home:** big button "Pointly chalu karein / band karein", the 5 quick tasks (each starts a session with that goal and shows the bubble), current state text from `EventChannel`.
 4. **Settings:** backend base URL, app key, voice in (Device / Cloud), voice out (Device / Cloud), caption script (Roman / Urdu), talk mode (Hold / Tap), demo mode, reset learning, debug overlay toggle.
 5. **Metrics:** sessions count, success rate, median `plannerMs`, median step time, cache hit rate; button to export `metrics.jsonl`; debug section with "Save current screen snapshot".
 
-### 10.1 MethodChannel `rehnuma/control`
+### 10.1 MethodChannel `pointly/control`
 | Method | Args | Returns |
 | --- | --- | --- |
 | `isServiceEnabled` | none | bool |
@@ -599,7 +599,7 @@ All screens bilingual (Urdu primary, English secondary line), large touch target
 | `resetLearning` | none | void |
 | `setDebugBoxes` | `{enabled: bool}` | void |
 
-### 10.2 EventChannel `rehnuma/events`
+### 10.2 EventChannel `pointly/events`
 Emits `{state, goalText?, step?, captionRoman?, error?}` on every state change.
 
 ---
@@ -681,7 +681,7 @@ Build strictly in this order. Each phase ends with a commit and a short note in 
 - Test on a real Android 13 or 14 phone with WhatsApp signed in (an emulator is fine for Phases 0 to 2 only).
 - Quick enable during development (USB debugging):
   ```
-  adb shell settings put secure enabled_accessibility_services pk.rehnuma.app/pk.rehnuma.app.service.RehnumaAccessibilityService
+  adb shell settings put secure enabled_accessibility_services pk.pointly.app/pk.pointly.app.service.PointlyAccessibilityService
   adb shell settings put secure accessibility_enabled 1
   ```
 - Use a dedicated test contact ("Sara") and a test photo for the WhatsApp flow.

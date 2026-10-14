@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../channel/rehnuma_channel.dart';
+import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
 import '../widgets/bilingual.dart';
 
-/// Language, backend, voice, talk mode, demo mode, learning reset and debug overlay (SPEC 10 item 4).
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -35,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _load() async {
-    final c = await RehnumaChannel.getConfig();
+    final c = await PointlyChannel.getConfig();
     if (!mounted) return;
     setState(() {
       _config = c;
@@ -47,11 +46,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _set(String key, Object value) async {
     setState(() => _config[key] = value);
-    await RehnumaChannel.setConfig({key: value});
+    await PointlyChannel.setConfig({key: value});
   }
 
   Future<void> _saveServer() async {
-    await RehnumaChannel.setConfig({'baseUrl': _baseUrl.text, 'appKey': _appKey.text});
+    await PointlyChannel.setConfig({'baseUrl': _baseUrl.text, 'appKey': _appKey.text});
     _toast(S.setSaved);
   }
 
@@ -60,8 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _checking = true;
       _checkResult = null;
     });
-    await RehnumaChannel.setConfig({'baseUrl': _baseUrl.text, 'appKey': _appKey.text});
-    final r = await RehnumaChannel.checkBackend();
+    await PointlyChannel.setConfig({'baseUrl': _baseUrl.text, 'appKey': _appKey.text});
+    final r = await PointlyChannel.checkBackend();
     if (!mounted) return;
     final Bi msg;
     if (r['reachable'] != true) {
@@ -172,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       value: _config['debugBoxes'] == true,
                       onChanged: (v) async {
                         setState(() => _config['debugBoxes'] = v);
-                        await RehnumaChannel.setDebugBoxes(v);
+                        await PointlyChannel.setDebugBoxes(v);
                       },
                     ),
                     const SizedBox(height: 8),
@@ -183,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       foreground: const Color(0xFFB3261E),
                       minHeight: 56,
                       onPressed: () async {
-                        await RehnumaChannel.resetLearning();
+                        await PointlyChannel.resetLearning();
                         _toast(S.setResetDone);
                       },
                     ),

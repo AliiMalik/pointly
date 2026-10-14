@@ -1,19 +1,3 @@
-"""Offline planner evaluation (SPEC 11).
-
-Runs every labelled snapshot in `eval/snapshots/` through the same Planner code path as `/v1/plan`
-and reports step accuracy, action accuracy, invalid-output rate and latency p50/p90, plus a CSV of
-the failures.
-
-    cd backend
-    python -m eval.eval_planner                 # uses LLM_MODEL / GEMINI_API_KEY from .env
-    python -m eval.eval_planner --mock          # keyword mock, no API key (checks the harness only)
-
-A snapshot file is what the app's "Save snapshot" writes, with `goal_text` and `expected` filled in:
-    {"goal_text": "WiFi on karna hai", "expected": [{"action": "tap", "element_id": 4}],
-     "history": [], "screen": {...}}
-`expected` lists every acceptable answer; omit `element_id` to accept any element for that action.
-"""
-
 import argparse
 import asyncio
 import csv
@@ -28,11 +12,11 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.config import get_settings  # noqa: E402
-from app.llm.mock import MockProvider  # noqa: E402
-from app.main import build_provider  # noqa: E402
-from app.planner import Planner, PlannerUnavailable  # noqa: E402
-from app.schemas import PlanRequest  # noqa: E402
+from app.config import get_settings
+from app.llm.mock import MockProvider
+from app.main import build_provider
+from app.planner import Planner, PlannerUnavailable
+from app.schemas import PlanRequest
 
 DEFAULT_SNAPSHOTS = BACKEND_DIR / "eval" / "snapshots"
 DEFAULT_REPORTS = BACKEND_DIR / "eval" / "reports"
@@ -96,7 +80,7 @@ def load_cases(folder: Path) -> tuple[list[Case], list[str]]:
                 "history": history,
                 "screen": data["screen"],
             })
-        except Exception as e:  # pydantic ValidationError or missing screen
+        except Exception as e:
             skipped.append(f"{path.name}: invalid ({str(e).splitlines()[0]})")
             continue
         cases.append(Case(path.stem, request, expected))
@@ -173,7 +157,7 @@ def summarize(report: Report) -> dict:
 
 
 def print_summary(s: dict, report: Report, failures: Path | None) -> None:
-    pct = lambda x: "—" if x is None else f"{x * 100:.1f}%"  # noqa: E731
+    pct = lambda x: "—" if x is None else f"{x * 100:.1f}%"
     print(f"Snapshots evaluated: {s['snapshots']}  (skipped {s['skipped']}, errors {s['errors']})")
     print(f"Step accuracy:   {pct(s['step_accuracy'])}")
     print(f"Action accuracy: {pct(s['action_accuracy'])}")
@@ -198,7 +182,7 @@ async def evaluate(snapshots: Path, mock: bool, concurrency: int) -> Report:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(description="Offline planner evaluation over labelled screen snapshots.")
     ap.add_argument("--snapshots", type=Path, default=DEFAULT_SNAPSHOTS)
     ap.add_argument("--out", type=Path, default=DEFAULT_REPORTS)
     ap.add_argument("--mock", action="store_true", help="use the keyword mock planner (no API key)")

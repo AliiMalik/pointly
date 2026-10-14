@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# SPEC rule 1 and 2 / acceptance test A9.
-# Fails if Rehnuma's Kotlin, Java or Dart sources use any API that acts for the user, captures the
-# screen or launches other apps, or if the accessibility service XML asks for gesture/screenshot rights.
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,7 +25,7 @@ if [ -n "$hits" ]; then
   status=1
 fi
 
-xml="$APP/android/app/src/main/res/xml/rehnuma_accessibility_service.xml"
+xml="$APP/android/app/src/main/res/xml/pointly_accessibility_service.xml"
 if [ ! -f "$xml" ]; then
   echo "FAIL: missing $xml"
   status=1

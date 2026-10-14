@@ -1,5 +1,3 @@
-"""Gemini provider using the `google-genai` SDK (SPEC 6.5). Model ids come from env."""
-
 import json
 import logging
 import time
@@ -18,11 +16,10 @@ If nothing intelligible was said, return an empty string."""
 
 
 MIN_DEADLINE_S = 10.0
-# Overloaded / rate-limited / server errors: try the fallback model instead.
 FALLBACK_CODES = {429, 500, 502, 503, 504}
 PRIMARY_COOLDOWN_S = 60.0
 
-log = logging.getLogger("rehnuma.gemini")
+log = logging.getLogger("pointly.gemini")
 
 
 class _Transcript(BaseModel):
@@ -39,8 +36,6 @@ class GeminiProvider:
         timeout_s: float = 6.5,
         fallback_model: str = "",
     ):
-        # The SDK sends this as the server deadline and Gemini rejects anything under 10 s.
-        # The planner's own budget (asyncio.wait_for, 6.5 s) still cuts calls off sooner.
         self.client = genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(timeout=int(max(timeout_s, MIN_DEADLINE_S) * 1000)),
@@ -88,9 +83,6 @@ class GeminiProvider:
 
 
     async def _generate(self, model: str, contents, config):
-        """Calls [model]; on overload/rate-limit/server errors, calls the fallback model instead.
-        After such an error the primary is skipped for a minute, so a busy model costs one slow
-        failure, not one per step."""
         models = [model]
         fallback = self.fallback_model
         if fallback and fallback != model:

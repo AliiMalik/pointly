@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
 
-/// A [Bi] string in the current language: English left-to-right, or Urdu right-to-left with
-/// extra line height for the script.
 class BiText extends StatelessWidget {
   const BiText(this.text, {super.key, this.size = 20, this.color, this.center = false, this.bold = true});
 
@@ -32,7 +30,6 @@ class BiText extends StatelessWidget {
   }
 }
 
-/// Large, high-contrast button (at least 56 dp tall).
 class BigButton extends StatelessWidget {
   const BigButton({
     super.key,

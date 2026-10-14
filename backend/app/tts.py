@@ -1,5 +1,3 @@
-"""`/v1/tts`: English or Urdu speech audio from Cloud Text-to-Speech Gemini-TTS, cached on disk (SPEC 6.7)."""
-
 import hashlib
 from pathlib import Path
 from typing import Protocol
@@ -17,13 +15,10 @@ class TtsError(Exception):
 
 class TtsEngine(Protocol):
     def synthesize(self, text: str, language: str = "ur") -> bytes:
-        """Returns WAV bytes. Raises TtsError."""
         ...
 
 
 class CloudTts:
-    """Google Cloud Text-to-Speech with a Gemini-TTS model; `ur-PK` is a preview language."""
-
     def __init__(self, model: str, voice: str = "Kore"):
         self.model = model
         self.voice = voice
@@ -40,11 +35,10 @@ class CloudTts:
                 voice=tts.VoiceSelectionParams(
                     language_code=LANGUAGE_CODES.get(language, "ur-PK"), name=self.voice, model_name=self.model,
                 ),
-                # LINEAR16 comes back as a WAV file (with header).
                 audio_config=tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16, sample_rate_hertz=24000),
                 timeout=10,
             )
-        except Exception as e:  # credentials, quota, network, unsupported voice
+        except Exception as e:
             raise TtsError(f"cloud tts failed: {e}") from e
         if not response.audio_content:
             raise TtsError("cloud tts returned no audio")
@@ -60,8 +54,6 @@ class UnconfiguredTts:
 
 
 class CachedTts:
-    """Caches audio by SHA-256 of the text (and voice settings) so fixed phrases cost nothing after the first time."""
-
     def __init__(self, engine: TtsEngine, cache_dir: Path, key_extra: str = ""):
         self.engine = engine
         self.cache_dir = cache_dir

@@ -1,5 +1,3 @@
-"""Chooses the next step for `/v1/plan` (SPEC 6.4). Also used as-is by `eval/eval_planner.py`."""
-
 import asyncio
 import json
 import re
@@ -13,18 +11,15 @@ from .logs import JsonlLog
 from .schemas import DIRECTION_ACTIONS, ELEMENT_ACTIONS, LLMPlan, PlanRequest, PlanResponse
 
 MAX_EN_WORDS = 14
-# Urdu script often puts spaces inside one spoken word (e.g. "واٹس ایپ"), so it gets more room.
 MAX_UR_WORDS = 16
 MAX_REASON_WORDS = 25
 TECH_WORDS = re.compile(r"#\d|\belement\b|\bnode\b|\bid\b", re.IGNORECASE)
 ARABIC_SCRIPT = re.compile(r"[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
 LATIN = re.compile(r"[A-Za-z]")
-# Urdu sentences may keep app names in Latin letters ("WhatsApp", "PIN"), but most letters must be Urdu.
 MIN_URDU_SHARE = 0.6
 
 
 def script_error(say_en: str, say_ur: str) -> str | None:
-    """Real models sometimes write Roman letters in say_ur, or slip other scripts into say_en."""
     urdu_letters = [c for c in say_ur if c.isalpha()]
     arabic = sum(1 for c in urdu_letters if ARABIC_SCRIPT.match(c))
     if not urdu_letters or arabic / len(urdu_letters) < MIN_URDU_SHARE:
@@ -39,11 +34,10 @@ CANT_HELP_UR = "اس کام میں میں ابھی مدد نہیں کر سکتی
 
 
 class PlannerUnavailable(Exception):
-    """The LLM could not be reached in time. The API answers 503 so the phone retries."""
+    pass
 
 
 def mask_request(req: PlanRequest) -> PlanRequest:
-    """Re-applies long-number masking to every string from the phone (SPEC 6.4 step 2)."""
     data = req.model_dump()
     data["goal_text"] = masking.mask(data["goal_text"])
     for h in data["history"]:
@@ -61,7 +55,6 @@ def _slug(s: str) -> str:
 
 
 def validate_plan(raw: dict, ids: set[int]) -> tuple[LLMPlan | None, str | None]:
-    """Returns (plan, None) when usable, else (None, error message for the retry turn)."""
     try:
         plan = LLMPlan.model_validate(raw)
     except ValidationError as e:
@@ -131,12 +124,11 @@ class Planner:
         self.min_retry_s = min_retry_s
 
     async def _call(self, turns: list[Turn], timeout: float) -> tuple[dict | None, str | None, str | None]:
-        """Returns (raw dict, raw text for the retry turn, error). Raises LLMError on provider failure."""
         try:
             raw = await asyncio.wait_for(self.provider.plan(prompts.SYSTEM, turns, LLMPlan), timeout=timeout)
         except asyncio.TimeoutError as e:
             raise LLMError("planner call timed out") from e
-        except ValueError as e:  # not JSON
+        except ValueError as e:
             return None, None, str(e)
         return raw, json.dumps(raw, ensure_ascii=False), None
 
@@ -145,7 +137,6 @@ class Planner:
         return response
 
     async def plan_detailed(self, request: PlanRequest) -> tuple[PlanResponse, bool, bool]:
-        """Like `plan`, plus whether the model's answer was valid and whether a retry was needed."""
         start = time.monotonic()
         req = mask_request(request)
         ids = {e.id for e in req.screen.elements}
@@ -167,7 +158,7 @@ class Planner:
                     if raw is not None:
                         plan, error = validate_plan(raw, ids)
                 except LLMError:
-                    plan = None  # first answer was already invalid: give up politely
+                    plan = None
         except LLMError as e:
             latency_ms = int((time.monotonic() - start) * 1000)
             self._log(req, None, latency_ms, retried, valid=False, error=str(e))

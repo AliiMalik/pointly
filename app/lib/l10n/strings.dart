@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-/// The app language: English by default, Urdu (Urdu script, right-to-left) when the user picks it.
-/// Mirrors the `language` setting stored by the Kotlin core.
 class Lang {
   Lang._();
 
@@ -14,18 +12,15 @@ class Lang {
 
   static void set(String? value) => code.value = value == ur ? ur : en;
 
-  /// Call at the top of a build method so the widget rebuilds when the language changes.
   static void watch(BuildContext context) => context.dependOnInheritedWidgetOfExactType<LangScope>();
 
   static TextDirection get direction => isUrdu ? TextDirection.rtl : TextDirection.ltr;
 }
 
-/// Rebuilds every widget that called [Lang.watch] when the language changes.
 class LangScope extends InheritedNotifier<ValueNotifier<String>> {
   LangScope({super.key, required super.child}) : super(notifier: Lang.code);
 }
 
-/// A string in English and Urdu; [text] is the one for the current language.
 class Bi {
   const Bi(this.en, this.ur);
 
@@ -35,13 +30,11 @@ class Bi {
   String get text => Lang.isUrdu ? ur : en;
 }
 
-/// All user-visible strings in one place (SPEC 14) so wording can be fixed quickly.
 class S {
   S._();
 
   static const appName = 'Pointly';
 
-  // Onboarding (SPEC 10 item 1)
   static const onbLanguage = Bi('Choose your language', 'اپنی زبان چنیں');
   static const onb1Title = Bi('Pointly shows you the way', 'پوائنٹلی آپ کو راستہ دکھاتی ہے');
   static const onb1Body = Bi(
@@ -60,7 +53,6 @@ class S {
   static const next = Bi('Next', 'آگے');
   static const start = Bi('Start', 'شروع کریں');
 
-  // Permissions (SPEC 10 item 2)
   static const permTitle = Bi('Permissions', 'اجازتیں');
   static const permAccessibility = Bi('Turn on the Pointly accessibility service', 'پوائنٹلی سروس آن کریں');
   static const permAccessibilityHelp = Bi(
@@ -74,7 +66,6 @@ class S {
   static const permDone = Bi('Done', 'ہو گیا');
   static const permContinue = Bi('Continue', 'آگے چلیں');
 
-  // Home (SPEC 10 item 3)
   static const homeStart = Bi('Start Pointly', 'پوائنٹلی چالو کریں');
   static const homeStop = Bi('Stop Pointly', 'پوائنٹلی بند کریں');
   static const homeQuickTasks = Bi('Quick tasks', 'جلدی والے کام');
@@ -84,7 +75,6 @@ class S {
   static const homeMetrics = Bi('Metrics', 'پیمائش');
   static const homePermissions = Bi('Permissions', 'اجازتیں');
 
-  // Settings (SPEC 10 item 4)
   static const setTitle = Bi('Settings', 'سیٹنگز');
   static const setLanguage = Bi('Language', 'زبان');
   static const setEnglish = Bi('English', 'English');
@@ -109,7 +99,6 @@ class S {
   static const setCheckDown = Bi('Server not reachable', 'سرور نہیں ملا');
   static const setSaved = Bi('Saved', 'محفوظ ہو گیا');
 
-  // Metrics (SPEC 10 item 5)
   static const metTitle = Bi('Metrics', 'پیمائش');
   static const metSessions = Bi('Sessions', 'سیشن');
   static const metSuccessRate = Bi('Success rate', 'کامیابی');
@@ -130,7 +119,6 @@ class S {
   );
   static const metRefresh = Bi('Refresh', 'تازہ کریں');
 
-  /// Quick tasks (SPEC 8.4). The English text is the goal sent to the planner in both languages.
   static const quickTasks = <Bi>[
     Bi('Send a photo on WhatsApp', 'واٹس ایپ پر تصویر بھیجنی ہے'),
     Bi('Make the text on my phone bigger', 'فون کی لکھائی بڑی کرنی ہے'),
@@ -139,7 +127,6 @@ class S {
     Bi('Top up my mobile balance', 'موبائل لوڈ کرنا ہے'),
   ];
 
-  /// Plain-language names for session states shown on Home.
   static Bi stateLabel(String state) {
     switch (state) {
       case 'IDLE':

@@ -1,5 +1,3 @@
-"""JSONL logs (SPEC 6.8). Element texts are only written when LOG_SCREENS=true (development)."""
-
 import json
 import threading
 from datetime import datetime, timezone

@@ -29,7 +29,6 @@ def test_eval_reports_accuracy_and_failures(tmp_path, capsys):
     snaps.mkdir()
     write(snaps, "font_ok", snapshot("Phone ke likhai bari karni hai", [{"action": "tap", "element_id": 2}], SETTINGS))
     write(snaps, "wifi_ok", snapshot("WiFi on karna hai", [{"action": "tap", "element_id": 1}], SETTINGS))
-    # The mock taps element 1 for WiFi; label this one as expecting 2 so it fails.
     write(snaps, "wifi_wrong", snapshot("WiFi on karna hai", [{"action": "tap", "element_id": 2}], SETTINGS))
     write(snaps, "unlabelled", snapshot("", [], SETTINGS))
     (snaps / "broken.json").write_text("{nope", encoding="utf-8")

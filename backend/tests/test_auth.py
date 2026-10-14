@@ -9,7 +9,7 @@ def test_missing_key_is_401(client):
 
 
 def test_wrong_key_is_401(client):
-    assert client.get("/v1/ping", headers={"X-Rehnuma-Key": "nope"}).status_code == 401
+    assert client.get("/v1/ping", headers={"X-Pointly-Key": "nope"}).status_code == 401
 
 
 def test_right_key_passes(client, auth):

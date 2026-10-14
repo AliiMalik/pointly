@@ -1,5 +1,3 @@
-"""Request and response models (SPEC 6.2, 6.3, 6.7)."""
-
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -28,7 +26,7 @@ class Element(BaseModel):
     checked: bool | None = None
     selected: bool | None = None
     bounds: list[int] = Field(min_length=4, max_length=4)
-    range: list[float] | None = Field(default=None, min_length=3, max_length=3)  # sliders: [min, max, current]
+    range: list[float] | None = Field(default=None, min_length=3, max_length=3)
 
 
 class Screen(BaseModel):
@@ -52,7 +50,7 @@ class HistoryItem(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     step: int
-    instruction: str = ""  # the English instruction shown at that step
+    instruction: str = ""
     target_label: str | None = None
     outcome: Literal["done", "deviated", "skipped"] = "done"
 
@@ -76,15 +74,12 @@ class PlanRequest(BaseModel):
     @field_validator("screen")
     @classmethod
     def _not_too_many(cls, screen: Screen) -> Screen:
-        # SPEC 6.4 step 1: reject screens with more than 120 elements (422).
         if len(screen.elements) > MAX_ELEMENTS:
             raise ValueError(f"screen has {len(screen.elements)} elements; max is {MAX_ELEMENTS}")
         return screen
 
 
 class LLMPlan(BaseModel):
-    """What the model must return (structured output schema)."""
-
     action: Action
     element_id: int | None = None
     scroll_direction: ScrollDirection | None = None
@@ -100,7 +95,7 @@ class PlanResponse(LLMPlan):
 
 
 class SttResponse(BaseModel):
-    text: str  # as spoken: English in English letters, Urdu in Urdu script
+    text: str
     latency_ms: int
 
 

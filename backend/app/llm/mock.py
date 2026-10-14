@@ -1,10 +1,3 @@
-"""Development-only keyword planner (`LLM_PROVIDER=mock`). No API key, no network.
-
-It reads the same prompt the real model gets and taps the clickable element whose label shares the
-most keywords with the goal. Good enough to exercise the phone's guidance loop on an emulator; not a
-substitute for the real planner.
-"""
-
 import json
 import os
 import re
@@ -16,7 +9,6 @@ from .base import Turn
 LINE = re.compile(r'^#(\d+) \[([^\]]*)\] (".*") @ \((\d+),(\d+)\)-\((\d+),(\d+)\)$')
 WORD = re.compile(r"[a-z0-9\-]+")
 
-# Goal word -> words to look for on screen.
 SYNONYMS = {
     "likhai": ["display", "text", "font", "size"],
     "bari": ["font", "size", "larger", "display"],
@@ -33,9 +25,6 @@ SCREEN_LINE = re.compile(r'^SCREEN \(package=([^,]+), size=[^,)]+(?:, title=(".*
 
 
 def load_script() -> list[dict]:
-    """`MOCK_SCRIPT=rules.json`: scripted answers for rehearsals. Each rule may match on `goal`
-    (substring), `package`, `title` (window title) and `step`, and answers with `action` (and
-    `label`, a substring of the element to tap, plus optional `say_en`/`say_ur`)."""
     path = os.environ.get("MOCK_SCRIPT")
     if not path:
         return []
@@ -89,8 +78,6 @@ class MockProvider:
         text = turns[-1].text
         if text.startswith("Your last answer was invalid"):
             text = next(t.text for t in reversed(turns) if t.text.startswith("GOAL:"))
-        # The goal may span lines (an "User answer: ..." line is added after ASK): take
-        # everything between GOAL: and STEP:.
         goal = text.split("\nSTEP:", 1)[0].removeprefix("GOAL:").strip().lower()
         scripted = self._scripted(goal, text)
         if scripted:
@@ -136,5 +123,4 @@ class MockProvider:
         }
 
     async def transcribe(self, audio: bytes, mime: str) -> dict:
-        # MOCK_STT_TEXT lets you rehearse the spoken flow on an emulator without a microphone.
         return {"text": os.environ.get("MOCK_STT_TEXT", "")}

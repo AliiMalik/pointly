@@ -1,12 +1,11 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.serialization")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "pk.rehnuma.app"
+    namespace = "pk.pointly.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,9 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "pk.rehnuma.app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "pk.pointly.app"
         minSdk = 26
         targetSdk = 35
         versionCode = flutter.versionCode
@@ -27,8 +24,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

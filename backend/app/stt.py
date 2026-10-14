@@ -1,5 +1,3 @@
-"""`/v1/stt`: Urdu speech to text, the fallback when the phone's recognizer can't do Urdu (SPEC 6.7)."""
-
 import io
 import time
 import wave

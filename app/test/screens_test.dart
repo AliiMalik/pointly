@@ -3,16 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rehnuma/channel/rehnuma_channel.dart';
-import 'package:rehnuma/l10n/strings.dart';
-import 'package:rehnuma/main.dart';
-import 'package:rehnuma/screens/home_screen.dart';
-import 'package:rehnuma/screens/metrics_screen.dart';
-import 'package:rehnuma/screens/onboarding_screen.dart';
-import 'package:rehnuma/screens/permissions_screen.dart';
-import 'package:rehnuma/screens/settings_screen.dart';
+import 'package:pointly/channel/pointly_channel.dart';
+import 'package:pointly/l10n/strings.dart';
+import 'package:pointly/main.dart';
+import 'package:pointly/screens/home_screen.dart';
+import 'package:pointly/screens/metrics_screen.dart';
+import 'package:pointly/screens/onboarding_screen.dart';
+import 'package:pointly/screens/permissions_screen.dart';
+import 'package:pointly/screens/settings_screen.dart';
 
-/// Stands in for the Kotlin side of `rehnuma/control` and `rehnuma/events`.
 class FakeCore {
   final calls = <MethodCall>[];
   bool serviceOn = true;
@@ -74,12 +73,12 @@ late FakeCore core;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const control = MethodChannel('rehnuma/control');
-  const events = EventChannel('rehnuma/events');
+  const control = MethodChannel('pointly/control');
+  const events = EventChannel('pointly/events');
 
   setUp(() {
     core = FakeCore();
-    RehnumaChannel.resetForTest();
+    PointlyChannel.resetForTest();
     Lang.set('en');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(control, core.handle);
@@ -92,7 +91,6 @@ void main() {
     );
   });
 
-  /// A phone-sized screen so the lists render like on the device.
   Future<void> pump(WidgetTester tester, Widget home) async {
     tester.view.physicalSize = const Size(1280, 2856);
     tester.view.devicePixelRatio = 3.0;
@@ -111,7 +109,6 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Scrolls until the [index]th widget showing [text] is on screen, then taps it.
   Future<void> tapText(WidgetTester tester, String text, {int index = 0}) async {
     final f = find.text(text).at(index);
     await tester.scrollUntilVisible(find.text(text).first, 200, scrollable: find.byType(Scrollable).last);
@@ -126,7 +123,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 2856);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(const RehnumaApp());
+      await tester.pumpWidget(const PointlyApp());
       await tester.pumpAndSettle();
       expect(find.byType(OnboardingScreen), findsOneWidget);
 
@@ -134,7 +131,7 @@ void main() {
       core.mic = true;
       core.notifications = true;
       await tester.pumpWidget(const SizedBox());
-      await tester.pumpWidget(const RehnumaApp());
+      await tester.pumpWidget(const PointlyApp());
       await tester.pumpAndSettle();
       expect(find.byType(HomeScreen), findsOneWidget);
     });
@@ -144,7 +141,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 2856);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(const RehnumaApp());
+      await tester.pumpWidget(const PointlyApp());
       await tester.pumpAndSettle();
       expect(find.byType(PermissionsScreen), findsOneWidget);
     });
@@ -194,7 +191,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(core.last('requestPermission').arguments, {'name': 'microphone'});
 
-      // Coming back from system settings refreshes the list.
       core.serviceOn = true;
       core.mic = true;
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
@@ -235,12 +231,12 @@ void main() {
     });
 
     testWidgets('session events update the status card', (tester) async {
-      final states = StreamController<RehnumaState>.broadcast();
+      final states = StreamController<PointlyState>.broadcast();
       addTearDown(states.close);
       await pump(tester, HomeScreen(states: states.stream));
       expect(find.text('${S.homeState.en}: Ready'), findsOneWidget);
 
-      states.add(RehnumaState.fromMap({
+      states.add(PointlyState.fromMap({
         'state': 'WAITING_FOR_USER',
         'goalText': 'Turn on WiFi',
         'step': 2,
@@ -251,7 +247,7 @@ void main() {
       expect(find.text('“Turn on WiFi”'), findsOneWidget);
       expect(find.text('Tap Network & internet'), findsOneWidget);
 
-      states.add(RehnumaState.fromMap({'state': 'ERROR', 'error': 'NETWORK: timeout'}));
+      states.add(PointlyState.fromMap({'state': 'ERROR', 'error': 'NETWORK: timeout'}));
       await tester.pumpAndSettle();
       expect(find.text('${S.homeState.en}: Something went wrong'), findsOneWidget);
       expect(find.text('NETWORK: timeout'), findsOneWidget);
@@ -341,7 +337,7 @@ void main() {
       (call) async => throw PlatformException(code: 'SERVICE_OFF', message: 'off'),
     );
     expect(
-      RehnumaChannel.showBubble(),
+      PointlyChannel.showBubble(),
       throwsA(isA<PlatformException>().having((e) => e.code, 'code', 'SERVICE_OFF')),
     );
   });

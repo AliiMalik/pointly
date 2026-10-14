@@ -2,10 +2,10 @@
 
 Android helper for first-time and low-literacy smartphone users. Hold the green bubble, say what you want to do, and Pointly points with an animated hand at the one thing to press next, says it out loud, and waits for **you** to tap. English by default; Urdu (Urdu script and voice) is one tap away in onboarding or Settings. It never taps, types or opens apps for you, never takes screenshots, and stops looking at PIN/password screens.
 
-"Pointly" is the display name and may change; code, package (`pk.rehnuma.app`), channels and headers keep the original working name *Rehnuma*. Built from [`docs/SPEC.md`](docs/SPEC.md); every judgement call is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+Built from [`docs/SPEC.md`](docs/SPEC.md); every judgement call is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ```
-rehnuma/
+pointly/
 ├── app/        Flutter screens + Kotlin core (accessibility service, overlays, voice, guidance loop)
 ├── backend/    FastAPI planner (/v1/plan, /v1/stt, /v1/tts) using Gemini, plus eval script
 ├── tools/      check_no_actions.sh (SPEC rule 1 / test A9)
@@ -23,7 +23,7 @@ python -m venv .venv
 cp .env.example .env                              # then edit .env
 ```
 
-In `.env` set at least `GEMINI_API_KEY` and a new `REHNUMA_APP_KEY`. The model ids are already filled in (`gemini-3.5-flash-lite` with `gemini-3.6-flash` as fallback, tested live 2026-10-14). For the cloud Urdu voice also set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON with Cloud Text-to-Speech enabled; without it `/v1/tts` answers 503 and the phone uses its own voice or captions.
+In `.env` set at least `GEMINI_API_KEY` and a new `POINTLY_APP_KEY`. The model ids are already filled in (`gemini-3.5-flash-lite` with `gemini-3.6-flash` as fallback, tested live 2026-10-14). For the cloud Urdu voice also set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON with Cloud Text-to-Speech enabled; without it `/v1/tts` answers 503 and the phone uses its own voice or captions.
 
 Run it so the phone can reach it on the same Wi-Fi/hotspot (allow Python through the Windows firewall when asked):
 
@@ -51,7 +51,7 @@ On the phone:
 
 1. Open **Pointly**, pick English or اردو on the first page, and go through the three onboarding pages.
 2. Permissions: turn on the Pointly accessibility service. On Android 13+ a side-loaded app may show the setting greyed out: **App info → ⋮ → Allow restricted settings**, then try again. Allow microphone and notifications.
-   During development this also works: `adb shell settings put secure enabled_accessibility_services pk.rehnuma.app/pk.rehnuma.app.service.RehnumaAccessibilityService`
+   During development this also works: `adb shell settings put secure enabled_accessibility_services pk.pointly.app/pk.pointly.app.service.PointlyAccessibilityService`
 3. Settings (gear icon): set **Backend base URL** to `http://<laptop-ip>:8000` and the **App key** from `.env`, then tap **Check server**. It must say *Server OK*.
 4. Home: **Start Pointly**. The bubble appears at the screen edge.
 
