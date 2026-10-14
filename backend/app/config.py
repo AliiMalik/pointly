@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     llm_provider: str = "gemini"  # "mock" = keyword planner for development, no API key
     gemini_api_key: str = ""
     llm_model: str = ""
+    llm_fallback_model: str = ""  # used when llm_model is overloaded (503/429/5xx)
     stt_model: str = ""
     llm_thinking: str = "low"  # Gemini 3 thinking level; "low" keeps planner latency down
     google_application_credentials: str = ""

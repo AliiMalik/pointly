@@ -110,10 +110,19 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - Launcher icon: adaptive icon (yellow target ring, white centre, brand green), with a monochrome layer for themed icons.
 - Emulator results and the remaining phone-only checks are in [`TEST_REPORT.md`](TEST_REPORT.md).
 
+## Live Gemini check (2026-10-14, with the team's API key)
+
+- **Model: `gemini-3.5-flash-lite`, fallback `gemini-3.6-flash`.** `gemini-3.8-flash` (the Phase 3 choice) was answering 503 "high demand", and its failures took ~3.5 s each. Flash-lite got all 9 eval screens right at p50 1.3 s / p90 1.7 s (SPEC target p50 < 2 s); it was the fastest of the five models probed.
+- **Fallback with cooldown** (`LLM_FALLBACK_MODEL`): on 429/5xx from the main model the same request goes to the fallback, and the main model is skipped for 60 s so a busy model costs one slow failure, not one per step. 429 matters here: the key's free-tier quota ran out per model after a handful of calls; each model has its own quota.
+- **SDK deadline ≥ 10 s.** The SDK sends its timeout as a server deadline and Gemini rejects anything under 10 s (`400 INVALID_ARGUMENT`); the planner's own 6.5 s `asyncio.wait_for` still cuts calls off in time for the phone.
+- **Script check.** Flash-lite put Roman Urdu into `say_urdu` in 5 of 9 answers (and once slipped Telugu letters into `say_roman`). The prompt now gives an Urdu-script example and forbids Roman letters in `say_urdu`, which fixed it on its own (9/9, no retries). The validator also rejects a `say_urdu` with under 60 % Urdu-script letters or a `say_roman` with non-Latin letters, triggering the corrective retry.
+- `/v1/stt` with Gemini works (200 in ~2 s, Urdu script plus Roman). Cloud TTS still needs `GOOGLE_APPLICATION_CREDENTIALS`.
+- The key lives only in `backend/.env` (git-ignored); `.env.example` stays blank.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_
 2. `SpeechRecognizer` `ur-PK` quality on the demo phone: _pending_
 3. On-device Urdu TTS voice installed: _pending_
-4. Measured planner latency over a venue-like network: _pending_
+4. Measured planner latency over a venue-like network: _pending_ (from this PC on home Wi-Fi: 1.2–2.1 s per step with gemini-3.5-flash-lite)
 5. Where the backend runs during the demo: _pending_

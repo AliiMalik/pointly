@@ -209,3 +209,25 @@ def test_mock_script_rules(settings, auth, tmp_path, monkeypatch):
     assert (body["action"], body["element_id"], body["goal_key"]) == ("tap", 2, "settings_font_size")
     req["screen"] = dict(screen, window_title="Display size & text")
     assert c.post("/v1/plan", json=req, headers=auth).json()["action"] == "done"
+
+
+def test_roman_text_in_say_urdu_is_rejected(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_urdu="Sara ke naam pe dabayein"), IDS)
+    assert plan is None and "Urdu script" in err
+
+
+def test_app_name_in_urdu_sentence_is_fine(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_urdu="سبز WhatsApp آئیکن دبائیں"), IDS)
+    assert err is None
+
+
+def test_other_scripts_in_say_roman_are_rejected(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_roman="Plus ka nishాన్ dabayein"), IDS)
+    assert plan is None and "Latin" in err
+
+
+def test_roman_in_urdu_triggers_retry(make_client, auth, example_request, good_answer):
+    fake = FakeProvider(dict(good_answer, say_urdu="Sara ke naam pe dabayein"), good_answer)
+    body = post(make_client(fake), example_request, auth).json()
+    assert body["say_urdu"] == good_answer["say_urdu"]
+    assert "Urdu script" in fake.calls[1][-1].text

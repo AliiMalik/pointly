@@ -1,6 +1,8 @@
 """Gemini provider using the `google-genai` SDK (SPEC 6.5). Model ids come from env."""
 
 import json
+import logging
+import time
 
 from google import genai
 from google.genai import errors, types
@@ -16,6 +18,14 @@ mixed with English app names (WhatsApp, Settings, WiFi). Return JSON with:
 If nothing intelligible was said, return empty strings."""
 
 
+MIN_DEADLINE_S = 10.0
+# Overloaded / rate-limited / server errors: try the fallback model instead.
+FALLBACK_CODES = {429, 500, 502, 503, 504}
+PRIMARY_COOLDOWN_S = 60.0
+
+log = logging.getLogger("rehnuma.gemini")
+
+
 class _Transcript(BaseModel):
     text_urdu: str
     text_roman: str
@@ -29,13 +39,18 @@ class GeminiProvider:
         stt_model: str,
         thinking_level: str = "low",
         timeout_s: float = 6.5,
+        fallback_model: str = "",
     ):
+        # The SDK sends this as the server deadline and Gemini rejects anything under 10 s.
+        # The planner's own budget (asyncio.wait_for, 6.5 s) still cuts calls off sooner.
         self.client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=int(timeout_s * 1000)),
+            http_options=types.HttpOptions(timeout=int(max(timeout_s, MIN_DEADLINE_S) * 1000)),
         )
         self.llm_model = llm_model
         self.stt_model = stt_model or llm_model
+        self.fallback_model = fallback_model
+        self._skip_until: dict[str, float] = {}
         self.thinking = types.ThinkingConfig(thinking_level=thinking_level) if thinking_level else None
 
     async def plan(self, system: str, turns: list[Turn], schema: type[BaseModel]) -> dict:
@@ -50,9 +65,7 @@ class GeminiProvider:
             thinking_config=self.thinking,
         )
         try:
-            resp = await self.client.aio.models.generate_content(
-                model=self.llm_model, contents=contents, config=config,
-            )
+            resp = await self._generate(self.llm_model, contents, config)
         except (errors.APIError, OSError, TimeoutError) as e:
             raise LLMError(f"gemini plan failed: {e}") from e
         return _json(resp.text)
@@ -65,10 +78,8 @@ class GeminiProvider:
             thinking_config=self.thinking,
         )
         try:
-            resp = await self.client.aio.models.generate_content(
-                model=self.stt_model,
-                contents=[types.Part.from_bytes(data=audio, mime_type=mime), STT_PROMPT],
-                config=config,
+            resp = await self._generate(
+                self.stt_model, [types.Part.from_bytes(data=audio, mime_type=mime), STT_PROMPT], config,
             )
         except (errors.APIError, OSError, TimeoutError) as e:
             raise LLMError(f"gemini transcribe failed: {e}") from e
@@ -76,6 +87,29 @@ class GeminiProvider:
             return _json(resp.text)
         except ValueError as e:
             raise LLMError(str(e)) from e
+
+
+    async def _generate(self, model: str, contents, config):
+        """Calls [model]; on overload/rate-limit/server errors, calls the fallback model instead.
+        After such an error the primary is skipped for a minute, so a busy model costs one slow
+        failure, not one per step."""
+        models = [model]
+        fallback = self.fallback_model
+        if fallback and fallback != model:
+            if time.monotonic() < self._skip_until.get(model, 0.0):
+                models = [fallback]
+            else:
+                models.append(fallback)
+        for i, m in enumerate(models):
+            try:
+                return await self.client.aio.models.generate_content(model=m, contents=contents, config=config)
+            except errors.APIError as e:
+                if e.code in FALLBACK_CODES and i < len(models) - 1:
+                    self._skip_until[m] = time.monotonic() + PRIMARY_COOLDOWN_S
+                    log.warning("model %s returned %s; using fallback %s", m, e.code, models[i + 1])
+                    continue
+                raise
+        raise AssertionError("unreachable")
 
 
 def _json(text: str | None) -> dict:

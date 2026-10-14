@@ -23,7 +23,7 @@ python -m venv .venv
 cp .env.example .env                              # then edit .env
 ```
 
-In `.env` set at least `GEMINI_API_KEY` and a new `REHNUMA_APP_KEY`. The model ids are already filled in (`gemini-3.8-flash`, checked 2026-10-14). For the cloud Urdu voice also set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON with Cloud Text-to-Speech enabled; without it `/v1/tts` answers 503 and the phone uses its own voice or captions.
+In `.env` set at least `GEMINI_API_KEY` and a new `REHNUMA_APP_KEY`. The model ids are already filled in (`gemini-3.5-flash-lite` with `gemini-3.6-flash` as fallback, tested live 2026-10-14). For the cloud Urdu voice also set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON with Cloud Text-to-Speech enabled; without it `/v1/tts` answers 503 and the phone uses its own voice or captions.
 
 Run it so the phone can reach it on the same Wi-Fi/hotspot (allow Python through the Windows firewall when asked):
 
@@ -31,11 +31,11 @@ Run it so the phone can reach it on the same Wi-Fi/hotspot (allow Python through
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-keep-alive 30
 ```
 
-Check: open `http://<laptop-ip>:8000/v1/health` → `{"status":"ok","model":"gemini-3.8-flash"}`.
+Check: open `http://<laptop-ip>:8000/v1/health` → `{"status":"ok","model":"gemini-3.5-flash-lite"}`.
 
 No API key yet? `LLM_PROVIDER=mock` runs a keyword planner (and `MOCK_STT_TEXT="..."` fakes speech) so the whole loop can be rehearsed. `/v1/health` then reports `"model": "mock"`.
 
-Tests: `.venv/Scripts/python -m pytest` (61 tests).
+Tests: `.venv/Scripts/python -m pytest` (69 tests).
 
 ## 2. App (phone)
 

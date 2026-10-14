@@ -43,6 +43,7 @@ def build_provider(settings: Settings) -> LLMProvider:
         llm_model=settings.llm_model,
         stt_model=settings.stt_model,
         thinking_level=settings.llm_thinking,
+        fallback_model=settings.llm_fallback_model,
     )
 
 

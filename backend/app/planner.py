@@ -17,6 +17,22 @@ MAX_ROMAN_WORDS = 12
 MAX_URDU_WORDS = 16
 MAX_REASON_WORDS = 25
 TECH_WORDS = re.compile(r"#\d|\belement\b|\bnode\b|\bid\b", re.IGNORECASE)
+ARABIC_SCRIPT = re.compile(r"[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
+LATIN = re.compile(r"[A-Za-z]")
+# Urdu sentences may keep app names in Latin letters ("WhatsApp", "PIN"), but most letters must be Urdu.
+MIN_URDU_SHARE = 0.6
+
+
+def script_error(say_urdu: str, say_roman: str) -> str | None:
+    """Real models sometimes write Roman Urdu in say_urdu, or slip other scripts into say_roman."""
+    urdu_letters = [c for c in say_urdu if c.isalpha()]
+    arabic = sum(1 for c in urdu_letters if ARABIC_SCRIPT.match(c))
+    if not urdu_letters or arabic / len(urdu_letters) < MIN_URDU_SHARE:
+        return "say_urdu must be written in Urdu script (Arabic letters such as دبائیں), not Roman letters"
+    roman_letters = [c for c in say_roman if c.isalpha()]
+    if any(not LATIN.match(c) for c in roman_letters):
+        return "say_roman must use only English (Latin) letters a-z"
+    return None
 
 CANT_HELP_URDU = "اس کام میں میں ابھی مدد نہیں کر سکتی۔"
 CANT_HELP_ROMAN = "Is kaam mein main abhi madad nahi kar sakti."
@@ -77,6 +93,9 @@ def validate_plan(raw: dict, ids: set[int]) -> tuple[LLMPlan | None, str | None]
             return None, f"{field} has {len(words)} words; use at most {MAX_ROMAN_WORDS}"
         if TECH_WORDS.search(text):
             return None, f"{field} must not mention ids, elements or nodes"
+
+    if error := script_error(plan.say_urdu, plan.say_roman):
+        return None, error
 
     plan.say_roman = plan.say_roman.strip()
     plan.say_urdu = plan.say_urdu.strip()
