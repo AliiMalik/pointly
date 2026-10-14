@@ -35,7 +35,7 @@ Check: open `http://<laptop-ip>:8000/v1/health` → `{"status":"ok","model":"gem
 
 No API key yet? `LLM_PROVIDER=mock` runs a keyword planner (and `MOCK_STT_TEXT="..."` fakes speech) so the whole loop can be rehearsed. `/v1/health` then reports `"model": "mock"`.
 
-Tests: `.venv/Scripts/python -m pytest` (59 tests).
+Tests: `.venv/Scripts/python -m pytest` (61 tests).
 
 ## 2. App (phone)
 

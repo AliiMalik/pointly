@@ -6,9 +6,9 @@ What was tested before handing over, and what still needs the demo phone.
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Backend (FastAPI, planner, STT/TTS, eval harness) | `cd backend && .venv/Scripts/python -m pytest` | 59 passed |
+| Backend (FastAPI, planner, STT/TTS, eval harness, mock) | `cd backend && .venv/Scripts/python -m pytest` | 61 passed |
 | Kotlin core (JVM) | `cd app/android && ./gradlew :app:testDebugUnitTest` | 95 passed |
-| Flutter | `cd app && flutter test` / `flutter analyze` | 4 passed / no issues |
+| Flutter (models + all five screens against a fake core) | `cd app && flutter test` / `flutter analyze` | 17 passed / no issues |
 | Safety check (A9) | `bash tools/check_no_actions.sh` | PASS |
 
 Kotlin coverage: masking (11), SafetyGuard rules a–d with the "اپنا" and long-chat-message negatives (23), element ordering, signatures and target matching (8), PlannerClient retries/timeouts/auth against a mock server (7), the guidance session on virtual time (30: happy path, deviation, wrong tap, no-click fallback, sensitive pause and resume, PIN sheet on the same window, network error and retry, cancel, 25-step limit, ask/answer, own-app home step, re-plan when the screen moves during planning, typing, voice states, fading levels, plan cache, metrics, pointer following a moved target), learning store and plan cache (9), metrics (5), WAV (2).
@@ -32,6 +32,24 @@ Pixel 10 Pro image (Android API 37), backend on the PC with the development mock
 | A11 | Pass | Exported `metrics-*.jsonl` via the share sheet: every guided step has `plannerMs` and `timeToUserTapMs`, no screen or instruction text. `ttsStartMs` is empty only because the emulator has no voice |
 
 Also checked: onboarding from cleared data, the real mic and notification permission dialogs, "Open settings" opening Android's accessibility page (the only launch), Settings **Check server** (OK / wrong key / unreachable), a session with a wrong key ("App key ghalat hai. Settings dekhein."), "Seekhna reset karein" emptying `learning.json`, debug snapshot export, and the Metrics screen numbers.
+
+## Second pass (same day, 08:40–09:10)
+
+| Area | Result |
+| --- | --- |
+| **Release build** (R8 minified, not debuggable) | Full guided task, Metrics screen and Check server work on the emulator; no serialization or reflection crashes |
+| Tap-to-talk mode | Tap starts listening, second tap sends; 1.5 s long-press opens the panel; drags never start listening |
+| Urdu-script captions | Instructions, WRONG_TAP and questions render right-to-left in Urdu script |
+| ASK flow | Question captioned; the spoken answer is appended as `User answer: …` in the same session and guidance continues |
+| TYPE step | Pointer on the search field; typing, then 3 s quiet, finishes the step |
+| WRONG_TAP | Pressing "5" on the dialer while the hand points at Home: caption flashes "یہ نہیں، جہاں ہاتھ ہے وہاں دبائیں", step stays, no re-plan |
+| HINT hesitation reveal | Caption only at first; ring and hand appear after 6 s |
+| Bubble drag | Follows the finger, snaps to the nearest edge, side remembered; × chip moves to the side facing the centre |
+| Flutter screens | 13 new widget tests: start-up routing, onboarding, permission buttons and resume refresh, start/stop and all 5 quick tasks, service-off redirect, status card, every Settings control, Check server (OK / wrong key / unreachable), Metrics numbers, dashes, export, snapshot |
+
+New bug found and fixed: on a TYPE step the caption covered the bottom row of keyboard keys. Captions now sit just above the keyboard (only the keyboard window's bounds are read).
+
+**Real phone:** the release APK is installed on an OPPO CPH2001 (Android 11, ColorOS 11.1, 1080×2400, WhatsApp installed). It starts and shows onboarding without crashing. It has Google TTS and Google speech recognition. The guided flows have not been run on it yet: the accessibility service has to be switched on by hand on the phone.
 
 ## Bugs found and fixed during the run
 
