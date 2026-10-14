@@ -35,7 +35,7 @@ Check: open `http://<laptop-ip>:8000/v1/health` → `{"status":"ok","model":"gem
 
 No API key yet? `LLM_PROVIDER=mock` runs a keyword planner (and `MOCK_STT_TEXT="..."` fakes speech) so the whole loop can be rehearsed. `/v1/health` then reports `"model": "mock"`.
 
-Tests: `.venv/Scripts/python -m pytest` (69 tests).
+Tests: `.venv/Scripts/python -m pytest` (73 tests).
 
 ## 2. App (phone)
 
@@ -49,15 +49,15 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 On the phone:
 
-1. Open **Rehnuma**, go through the three onboarding pages.
-2. Permissions: turn on the Rehnuma accessibility service. On Android 13+ a side-loaded app may show the setting greyed out: **App info → ⋮ → Allow restricted settings**, then try again. Allow microphone and notifications.
+1. Open **Pointly**, pick English or اردو on the first page, and go through the three onboarding pages.
+2. Permissions: turn on the Pointly accessibility service. On Android 13+ a side-loaded app may show the setting greyed out: **App info → ⋮ → Allow restricted settings**, then try again. Allow microphone and notifications.
    During development this also works: `adb shell settings put secure enabled_accessibility_services pk.rehnuma.app/pk.rehnuma.app.service.RehnumaAccessibilityService`
 3. Settings (gear icon): set **Backend base URL** to `http://<laptop-ip>:8000` and the **App key** from `.env`, then tap **Check server**. It must say *Server OK*.
-4. Home: **Rehnuma chalu karein**. The bubble appears at the screen edge.
+4. Home: **Start Pointly**. The bubble appears at the screen edge.
 
-Using it: **hold** the bubble and speak, release to send. A short tap while idle opens the quick-task panel (five tasks, a Roman Urdu text box for noisy rooms, Snapshot). During guidance a short tap repeats the instruction, and **×** or the notification's **Band karein** stops everything. Settings can switch to Tap-to-talk, cloud speech, Urdu-script captions, and **Demo mode** (always full help, use it on stage).
+Using it: **hold** the bubble and speak, release to send. A short tap while idle opens the quick-task panel (five tasks, a text box for noisy rooms, Snapshot). During guidance a short tap repeats the instruction, and **×** or the notification's **Stop** stops everything. Settings can switch the language (English / اردو), Tap-to-talk, cloud speech, and **Demo mode** (always full help, use it on stage).
 
-Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (95 tests). Dart: `flutter test`.
+Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (107 tests). Dart: `flutter test`.
 
 ## 3. Demo-day checklist (SPEC 12)
 
@@ -65,12 +65,12 @@ Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (95 tests). D
 | --- | --- |
 | A1 | Bubble stays over WhatsApp and Settings; taps on the app below still work |
 | A2 | Settings → Debug boxes overlay on WhatsApp chat list, Settings and the wallet app: boxes sit on the real buttons |
-| A3 | From the home screen say "WhatsApp pe Sara ko photo bhejni hai"; follow it to a sent photo (5 runs) |
-| A4 | Tap something else mid-task: hear "Koi baat nahi, ab yahan se chalte hain" once, guidance continues |
-| A5 | Demo mode **off**, Settings → Seekhna reset karein, then run the font-size task 4–5 times: full help, then hint, then silent |
-| A6 | Wallet app "Mobile load" until the PIN screen: "Yeh screen aap khud bharein…", no pointer, no `plan.jsonl` line for that screen |
+| A3 | From the home screen say "Send a photo to Sara on WhatsApp"; follow it to a sent photo (5 runs) |
+| A4 | Tap something else mid-task: hear "No problem, let's carry on from here" once, guidance continues |
+| A5 | Demo mode **off**, Settings → Reset learning, then run the font-size task 4–5 times: full help, then hint, then silent |
+| A6 | Wallet app "Mobile load" until the PIN screen: "Please fill in this screen yourself…", no pointer, no `plan.jsonl` line for that screen |
 | A7 | Cancel with × and with the notification: everything disappears at once, speech stops |
-| A8 | Stop the backend: "Internet aahista hai…", then the bubble shows ↻; tap it after restarting |
+| A8 | Stop the backend: "The internet is slow, trying again", then the bubble shows ↻; tap it after restarting |
 | A9 | `bash tools/check_no_actions.sh` → PASS |
 | A10 | Repeat a finished task: Metrics shows a cache hit rate above 0 |
 | A11 | Metrics → Export metrics.jsonl: every step has timings, no screen text |
