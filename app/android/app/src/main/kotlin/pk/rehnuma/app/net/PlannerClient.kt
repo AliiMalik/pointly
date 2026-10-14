@@ -57,8 +57,8 @@ class PlannerClient(
     }
 
     /** POST /v1/tts; returns WAV bytes (SPEC 6.7). */
-    suspend fun tts(textUrdu: String): Result<ByteArray> {
-        val body = ApiJson.encodeToString(TtsRequest.serializer(), TtsRequest(textUrdu))
+    suspend fun tts(text: String, language: String): Result<ByteArray> {
+        val body = ApiJson.encodeToString(TtsRequest.serializer(), TtsRequest(text, language))
         // No retry: a 503 here means the cloud voice is not set up, and captions are enough.
         return send("/v1/tts", { body.toRequestBody(jsonType) }, {}, attempts = 1) { r -> r.body!!.bytes() }
     }

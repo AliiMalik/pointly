@@ -20,6 +20,7 @@ import pk.rehnuma.app.overlay.PointerTarget
 import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.screen.TestScreens.el
 import pk.rehnuma.app.screen.TestScreens.snap
+import pk.rehnuma.app.voice.Line
 import pk.rehnuma.app.voice.Phrase
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -114,7 +115,7 @@ class GuidanceSessionTest {
             cleared++
         }
 
-        override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) {
+        override fun emit(state: SessionState, goalText: String?, step: Int?, caption: String?, error: String?) {
             states += state
         }
     }
@@ -122,8 +123,8 @@ class GuidanceSessionTest {
     private class FakeVoice : SessionVoice {
         val said = mutableListOf<String>()
         var stops = 0
-        override fun speak(urdu: String, roman: String, onDone: () -> Unit) {
-            said += roman
+        override fun speak(line: Line, onDone: () -> Unit) {
+            said += line.en
             onDone()
         }
 
@@ -182,11 +183,11 @@ class GuidanceSessionTest {
         return Rig(session, screen, planner, ui, voice, observer)
     }
 
-    private fun tap(id: Int, say: String = "Isay dabayein", key: String = "test_goal") =
-        PlanResponse(action = "tap", elementId = id, sayUrdu = "اسے دبائیں", sayRoman = say, goalKey = key, confidence = 0.9)
+    private fun tap(id: Int, say: String = "Tap this", key: String = "test_goal") =
+        PlanResponse(action = "tap", elementId = id, sayEn = say, sayUr = "اسے دبائیں", goalKey = key, confidence = 0.9)
 
-    private fun plan(action: String, say: String = "Theek hai", id: Int? = null, key: String = "test_goal") =
-        PlanResponse(action = action, elementId = id, sayUrdu = "ٹھیک ہے", sayRoman = say, goalKey = key, confidence = 0.9)
+    private fun plan(action: String, say: String = "OK", id: Int? = null, key: String = "test_goal") =
+        PlanResponse(action = action, elementId = id, sayEn = say, sayUr = "ٹھیک ہے", goalKey = key, confidence = 0.9)
 
     private fun click(pkg: String, bounds: List<Int>?, label: String? = null, viewId: String? = null) =
         ScreenEvent(ScreenEvent.Type.CLICKED, pkg, source = SourceInfo(viewId = viewId, label = label, bounds = bounds))
@@ -203,15 +204,15 @@ class GuidanceSessionTest {
 
     @Test fun happyPathTapThenDone() = runTest {
         val r = rig(launcher)
-        r.planner.then(tap(1, "Hara WhatsApp icon dabayein", "whatsapp_send_photo"))
+        r.planner.then(tap(1, "Tap the green WhatsApp icon", "whatsapp_send_photo"))
         r.planner.then(plan("done"))
 
         r.session.submitGoal("WhatsApp kholna hai")
         runCurrent()
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
         assertEquals(PointerTarget.Element(listOf(100, 1800, 300, 2000)), r.ui.points.last().first)
-        assertEquals("Hara WhatsApp icon dabayein", r.ui.points.last().second)
-        assertTrue(r.voice.said.contains("Hara WhatsApp icon dabayein"))
+        assertEquals("Tap the green WhatsApp icon", r.ui.points.last().second)
+        assertTrue(r.voice.said.contains("Tap the green WhatsApp icon"))
         assertEquals("whatsapp_send_photo", r.session.goalKey)
 
         r.screen.current = chats
@@ -225,9 +226,9 @@ class GuidanceSessionTest {
         val second = r.planner.requests[1]
         assertEquals(2, second.stepIndex)
         assertEquals("com.whatsapp", second.screen.packageName)
-        assertEquals("Hara WhatsApp icon dabayein", second.history.single().instructionRoman)
+        assertEquals("Tap the green WhatsApp icon", second.history.single().instruction)
         assertEquals(SessionState.COMPLETED, r.session.state)
-        assertTrue(r.voice.said.contains(Phrase.DONE.roman))
+        assertTrue(r.voice.said.contains(Phrase.DONE.en))
 
         advanceTimeBy(GuidanceSession.END_MAX_MS + 100) // backgroundScope timers need explicit time
         runCurrent()
@@ -248,8 +249,8 @@ class GuidanceSessionTest {
         r.session.onEvent(windowChange("com.whatsapp"))
         settle()
 
-        assertEquals(listOf(Phrase.DEVIATION.roman), r.voice.said.filter { it == Phrase.DEVIATION.roman })
-        assertTrue(r.ui.captions.contains(Phrase.DEVIATION.roman))
+        assertEquals(listOf(Phrase.DEVIATION.en), r.voice.said.filter { it == Phrase.DEVIATION.en })
+        assertTrue(r.ui.captions.contains(Phrase.DEVIATION.en))
         assertEquals("deviated", r.session.history.single().outcome)
         assertEquals(2, r.planner.requests.size)
         assertEquals("Ali", r.planner.requests[1].screen.elements[0].text) // re-planned from Ali's chat
@@ -267,8 +268,8 @@ class GuidanceSessionTest {
         r.session.onEvent(click("com.whatsapp", listOf(0, 300, 360, 400), "chats"))
         settle()
 
-        assertEquals(1, r.voice.said.count { it == Phrase.WRONG_TAP.roman })
-        assertEquals(listOf(Phrase.WRONG_TAP.roman), r.ui.flashes)
+        assertEquals(1, r.voice.said.count { it == Phrase.WRONG_TAP.en })
+        assertEquals(listOf(Phrase.WRONG_TAP.en), r.ui.flashes)
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
         assertEquals(1, r.planner.requests.size)
     }
@@ -310,7 +311,7 @@ class GuidanceSessionTest {
         settle()
         assertEquals(SessionState.SENSITIVE_PAUSE, r.session.state)
         assertEquals(1, r.planner.requests.size) // the PIN screen never reached the planner
-        assertTrue(r.voice.said.contains(Phrase.SENSITIVE_PAUSE.roman))
+        assertTrue(r.voice.said.contains(Phrase.SENSITIVE_PAUSE.en))
         assertEquals(BubbleState.PAUSED, r.ui.bubble)
         assertTrue(r.session.isActive)
 
@@ -336,7 +337,7 @@ class GuidanceSessionTest {
 
         assertEquals(SessionState.ERROR, r.session.state)
         assertEquals(BubbleState.ERROR, r.ui.bubble)
-        assertTrue(r.voice.said.contains(Phrase.NETWORK_SLOW.roman))
+        assertTrue(r.voice.said.contains(Phrase.NETWORK_SLOW.en))
         assertFalse(r.session.isActive)
 
         r.session.onBubbleTap()
@@ -364,6 +365,16 @@ class GuidanceSessionTest {
         assertEquals(1, r.planner.requests.size)
     }
 
+    @Test fun doneForTheUsersOwnPartSaysThePlannerLine() = runTest {
+        val r = rig(launcher)
+        r.planner.then(plan("done", "Please type your PIN yourself."))
+        r.session.submitGoal("Pay my bill")
+        runCurrent()
+        assertTrue(r.voice.said.contains("Please type your PIN yourself."))
+        assertFalse(r.voice.said.contains(Phrase.DONE.en))
+        advanceTimeBy(GuidanceSession.END_MAX_MS + 100)
+    }
+
     @Test fun stopsAfter25Steps() = runTest {
         val r = rig(launcher)
         repeat(GuidanceSession.MAX_STEPS) { r.planner.then(tap(1)) }
@@ -374,7 +385,7 @@ class GuidanceSessionTest {
             settle()
         }
         assertEquals(GuidanceSession.MAX_STEPS, r.planner.requests.size)
-        assertTrue(r.voice.said.contains(Phrase.CANT_HELP.roman))
+        assertTrue(r.voice.said.contains(Phrase.CANT_HELP.en))
         assertEquals(8, r.planner.requests.last().history.size) // only the last 8 are sent
         advanceTimeBy(GuidanceSession.END_MAX_MS + 100) // backgroundScope timers need explicit time
         runCurrent()
@@ -383,12 +394,12 @@ class GuidanceSessionTest {
 
     @Test fun askThenAnswerReplans() = runTest {
         val r = rig(chats)
-        r.planner.then(plan("ask", "Kis ko bhejni hai?"))
+        r.planner.then(plan("ask", "Who should get it?"))
         r.planner.then(tap(2))
         r.session.submitGoal("Photo bhejni hai")
         runCurrent()
         assertEquals(SessionState.ASKING, r.session.state)
-        assertTrue(r.ui.captions.contains("Kis ko bhejni hai?"))
+        assertTrue(r.ui.captions.contains("Who should get it?"))
 
         r.session.submitGoal("Sara ko")
         runCurrent()
@@ -479,13 +490,13 @@ class GuidanceSessionTest {
         assertEquals(1, r.planner.requests.size)
     }
 
-    @Test fun urduCaptionSetting() = runTest {
-        val r = rig(launcher, AppConfig(caption = AppConfig.CAPTION_URDU))
+    @Test fun urduLanguageSetting() = runTest {
+        val r = rig(launcher, AppConfig(language = AppConfig.LANG_UR))
         r.planner.then(tap(1))
         r.session.submitGoal("WhatsApp")
         runCurrent()
         assertEquals("اسے دبائیں", r.ui.points.last().second)
-        assertEquals("urdu", r.planner.requests[0].prefs.caption)
+        assertEquals("ur", r.planner.requests[0].prefs.language)
     }
 
     // ---------------------------------------------------------------- voice (Phase 5)
@@ -500,7 +511,7 @@ class GuidanceSessionTest {
         assertEquals("WhatsApp", r.ui.captions.last())
         r.session.speechResult("WhatsApp pe photo bhejni hai")
         runCurrent()
-        assertTrue(r.voice.said.contains(Phrase.THINKING.roman))
+        assertTrue(r.voice.said.contains(Phrase.THINKING.en))
         assertEquals("WhatsApp pe photo bhejni hai", r.planner.requests.single().goalText)
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)
     }
@@ -513,13 +524,13 @@ class GuidanceSessionTest {
         r.session.speechResult("  ")
         runCurrent()
         assertEquals(SessionState.IDLE, r.session.state)
-        assertTrue(r.voice.said.contains(Phrase.DIDNT_HEAR.roman))
+        assertTrue(r.voice.said.contains(Phrase.DIDNT_HEAR.en))
         assertEquals(0, r.planner.requests.size)
     }
 
     @Test fun spokenAnswerWhileAsking() = runTest {
         val r = rig(chats)
-        r.planner.then(plan("ask", "Kis ko bhejni hai?"))
+        r.planner.then(plan("ask", "Who should get it?"))
         r.planner.then(tap(2))
         r.session.submitGoal("Photo bhejni hai")
         runCurrent()
@@ -532,7 +543,7 @@ class GuidanceSessionTest {
 
     @Test fun silenceWhileAskingKeepsAsking() = runTest {
         val r = rig(chats)
-        r.planner.then(plan("ask", "Kis ko bhejni hai?"))
+        r.planner.then(plan("ask", "Who should get it?"))
         r.session.submitGoal("Photo bhejni hai")
         runCurrent()
         r.session.listeningStarted()
@@ -586,7 +597,7 @@ class GuidanceSessionTest {
         }
         // SPEC 9.1 / A5: runs 1-2 FULL, 3-4 HINT, 5+ SILENT.
         assertEquals(listOf("FULL", "FULL", "HINT", "HINT", "SILENT"), levels)
-        assertTrue(r.voice.said.contains(Phrase.YOUR_TURN.roman))
+        assertTrue(r.voice.said.contains(Phrase.YOUR_TURN.en))
         // HINT runs spoke only the first clause.
         assertTrue(r.voice.said.contains("Display size and text wala option dabayein"))
     }
@@ -744,7 +755,7 @@ class GuidanceSessionTest {
 
     @Test fun liveValuesDoNotFinishAScrollStep() = runTest {
         val r = rig(brightnessPage("501", warning = false))
-        r.planner.then(PlanResponse(action = "scroll", elementId = 1, scrollDirection = "down", sayUrdu = "نیچے سکرول کریں", sayRoman = "Neeche scroll karein", goalKey = "settings_font_size"))
+        r.planner.then(PlanResponse(action = "scroll", elementId = 1, scrollDirection = "down", sayEn = "Scroll down", sayUr = "نیچے سکرول کریں", goalKey = "settings_font_size"))
         r.session.submitGoal("Phone ke likhai bari karni hai")
         runCurrent()
         assertEquals(SessionState.WAITING_FOR_USER, r.session.state)

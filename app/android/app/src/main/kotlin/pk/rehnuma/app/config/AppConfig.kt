@@ -8,7 +8,7 @@ data class AppConfig(
     val appKey: String = DEFAULT_APP_KEY,
     val voiceIn: String = VOICE_DEVICE,      // "device" | "cloud"
     val voiceOut: String = VOICE_DEVICE,     // "device" | "cloud"
-    val caption: String = CAPTION_ROMAN,     // "roman" | "urdu"
+    val language: String = LANG_EN,         // "en" | "ur"
     val talkMode: String = TALK_HOLD,        // "hold" | "tap"
     val demoMode: Boolean = false,           // force FULL guidance
     val debugBoxes: Boolean = false,
@@ -19,7 +19,7 @@ data class AppConfig(
         "appKey" to appKey,
         "voiceIn" to voiceIn,
         "voiceOut" to voiceOut,
-        "caption" to caption,
+        "language" to language,
         "talkMode" to talkMode,
         "demoMode" to demoMode,
         "debugBoxes" to debugBoxes,
@@ -31,8 +31,8 @@ data class AppConfig(
         const val DEFAULT_APP_KEY = "change-me"
         const val VOICE_DEVICE = "device"
         const val VOICE_CLOUD = "cloud"
-        const val CAPTION_ROMAN = "roman"
-        const val CAPTION_URDU = "urdu"
+        const val LANG_EN = "en"
+        const val LANG_UR = "ur"
         const val TALK_HOLD = "hold"
         const val TALK_TAP = "tap"
 
@@ -46,7 +46,9 @@ data class AppConfig(
                 appKey = p.getString("appKey", d.appKey) ?: d.appKey,
                 voiceIn = p.getString("voiceIn", d.voiceIn) ?: d.voiceIn,
                 voiceOut = p.getString("voiceOut", d.voiceOut) ?: d.voiceOut,
-                caption = p.getString("caption", d.caption) ?: d.caption,
+                // Before the English version there was only a caption script; Urdu script meant Urdu.
+                language = p.getString("language", null)
+                    ?: if (p.getString("caption", null) == "urdu") LANG_UR else d.language,
                 talkMode = p.getString("talkMode", d.talkMode) ?: d.talkMode,
                 demoMode = p.getBoolean("demoMode", d.demoMode),
                 debugBoxes = p.getBoolean("debugBoxes", d.debugBoxes),
@@ -64,8 +66,8 @@ data class AppConfig(
                     "appKey" -> (v as? String)?.let { e.putString(k, it.trim()) }
                     "voiceIn", "voiceOut" ->
                         (v as? String)?.takeIf { it == VOICE_DEVICE || it == VOICE_CLOUD }?.let { e.putString(k, it) }
-                    "caption" ->
-                        (v as? String)?.takeIf { it == CAPTION_ROMAN || it == CAPTION_URDU }?.let { e.putString(k, it) }
+                    "language" ->
+                        (v as? String)?.takeIf { it == LANG_EN || it == LANG_UR }?.let { e.putString(k, it) }
                     "talkMode" ->
                         (v as? String)?.takeIf { it == TALK_HOLD || it == TALK_TAP }?.let { e.putString(k, it) }
                     "demoMode", "debugBoxes", "onboarded" -> (v as? Boolean)?.let { e.putBoolean(k, it) }

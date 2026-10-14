@@ -11,11 +11,10 @@ from pydantic import BaseModel
 from .base import LLMError, Turn
 
 STT_PROMPT = """\
-Transcribe this short voice message from a user in Pakistan. It is in Urdu or Punjabi, possibly
-mixed with English app names (WhatsApp, Settings, WiFi). Return JSON with:
-- text_urdu: the words in Urdu script
-- text_roman: the same words in simple Roman Urdu
-If nothing intelligible was said, return empty strings."""
+Transcribe this short voice message from a user in Pakistan. It is in English, Urdu or Punjabi,
+often mixed with English app names (WhatsApp, Settings, WiFi). Return JSON with:
+- text: the words as spoken: English in English letters, Urdu or Punjabi in Urdu script
+If nothing intelligible was said, return an empty string."""
 
 
 MIN_DEADLINE_S = 10.0
@@ -27,8 +26,7 @@ log = logging.getLogger("rehnuma.gemini")
 
 
 class _Transcript(BaseModel):
-    text_urdu: str
-    text_roman: str
+    text: str
 
 
 class GeminiProvider:

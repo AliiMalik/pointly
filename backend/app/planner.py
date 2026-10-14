@@ -12,9 +12,9 @@ from .llm.base import LLMError, LLMProvider, Turn
 from .logs import JsonlLog
 from .schemas import DIRECTION_ACTIONS, ELEMENT_ACTIONS, LLMPlan, PlanRequest, PlanResponse
 
-MAX_ROMAN_WORDS = 12
+MAX_EN_WORDS = 14
 # Urdu script often puts spaces inside one spoken word (e.g. "واٹس ایپ"), so it gets more room.
-MAX_URDU_WORDS = 16
+MAX_UR_WORDS = 16
 MAX_REASON_WORDS = 25
 TECH_WORDS = re.compile(r"#\d|\belement\b|\bnode\b|\bid\b", re.IGNORECASE)
 ARABIC_SCRIPT = re.compile(r"[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
@@ -23,19 +23,19 @@ LATIN = re.compile(r"[A-Za-z]")
 MIN_URDU_SHARE = 0.6
 
 
-def script_error(say_urdu: str, say_roman: str) -> str | None:
-    """Real models sometimes write Roman Urdu in say_urdu, or slip other scripts into say_roman."""
-    urdu_letters = [c for c in say_urdu if c.isalpha()]
+def script_error(say_en: str, say_ur: str) -> str | None:
+    """Real models sometimes write Roman letters in say_ur, or slip other scripts into say_en."""
+    urdu_letters = [c for c in say_ur if c.isalpha()]
     arabic = sum(1 for c in urdu_letters if ARABIC_SCRIPT.match(c))
     if not urdu_letters or arabic / len(urdu_letters) < MIN_URDU_SHARE:
-        return "say_urdu must be written in Urdu script (Arabic letters such as دبائیں), not Roman letters"
-    roman_letters = [c for c in say_roman if c.isalpha()]
-    if any(not LATIN.match(c) for c in roman_letters):
-        return "say_roman must use only English (Latin) letters a-z"
+        return "say_ur must be written in Urdu script (Arabic letters such as دبائیں), not Roman letters"
+    english_letters = [c for c in say_en if c.isalpha()]
+    if any(not LATIN.match(c) for c in english_letters):
+        return "say_en must be plain English using only the letters a-z"
     return None
 
-CANT_HELP_URDU = "اس کام میں میں ابھی مدد نہیں کر سکتی۔"
-CANT_HELP_ROMAN = "Is kaam mein main abhi madad nahi kar sakti."
+CANT_HELP_EN = "Sorry, I can't help with this task yet."
+CANT_HELP_UR = "اس کام میں میں ابھی مدد نہیں کر سکتی۔"
 
 
 class PlannerUnavailable(Exception):
@@ -47,7 +47,7 @@ def mask_request(req: PlanRequest) -> PlanRequest:
     data = req.model_dump()
     data["goal_text"] = masking.mask(data["goal_text"])
     for h in data["history"]:
-        h["instruction_roman"] = masking.mask(h["instruction_roman"])
+        h["instruction"] = masking.mask(h["instruction"])
         h["target_label"] = masking.mask(h["target_label"])
     data["screen"]["window_title"] = masking.mask(data["screen"]["window_title"])
     for e in data["screen"]["elements"]:
@@ -83,22 +83,22 @@ def validate_plan(raw: dict, ids: set[int]) -> tuple[LLMPlan | None, str | None]
         plan.scroll_direction = None
 
     for field, text, limit in (
-        ("say_roman", plan.say_roman, MAX_ROMAN_WORDS),
-        ("say_urdu", plan.say_urdu, MAX_URDU_WORDS),
+        ("say_en", plan.say_en, MAX_EN_WORDS),
+        ("say_ur", plan.say_ur, MAX_UR_WORDS),
     ):
         words = text.split()
         if not words:
             return None, f"{field} must not be empty"
         if len(words) > limit:
-            return None, f"{field} has {len(words)} words; use at most {MAX_ROMAN_WORDS}"
+            return None, f"{field} has {len(words)} words; use at most {limit}"
         if TECH_WORDS.search(text):
             return None, f"{field} must not mention ids, elements or nodes"
 
-    if error := script_error(plan.say_urdu, plan.say_roman):
+    if error := script_error(plan.say_en, plan.say_ur):
         return None, error
 
-    plan.say_roman = plan.say_roman.strip()
-    plan.say_urdu = plan.say_urdu.strip()
+    plan.say_en = plan.say_en.strip()
+    plan.say_ur = plan.say_ur.strip()
     plan.goal_key = _slug(plan.goal_key)
     plan.confidence = min(1.0, max(0.0, plan.confidence))
     plan.reason = " ".join(plan.reason.split()[:MAX_REASON_WORDS])
@@ -108,7 +108,7 @@ def validate_plan(raw: dict, ids: set[int]) -> tuple[LLMPlan | None, str | None]
 def cant_help(goal_key: str = "unknown_task") -> LLMPlan:
     return LLMPlan(
         action="cant_help", element_id=None, scroll_direction=None,
-        say_urdu=CANT_HELP_URDU, say_roman=CANT_HELP_ROMAN,
+        say_en=CANT_HELP_EN, say_ur=CANT_HELP_UR,
         goal_key=goal_key, confidence=0.0, reason="Planner output was invalid twice.",
     )
 

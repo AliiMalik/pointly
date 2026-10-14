@@ -27,7 +27,7 @@ import kotlin.math.sin
 enum class BubbleState { IDLE, LISTENING, THINKING, SPEAKING, PAUSED, ERROR }
 
 /**
- * The floating bubble (SPEC 5.8): a 64 dp green circle with "ر" that stays on top of all apps,
+ * The floating bubble (SPEC 5.8): a 64 dp green circle with "P" that stays on top of all apps,
  * can be dragged along the screen edges and snaps to the nearest side.
  *
  * The bubble only reports raw gestures; [Listener] decides what they mean for the session.
@@ -215,12 +215,12 @@ class BubbleOverlay(private val context: Context, private val listener: Listener
             val animated = state == BubbleState.LISTENING || state == BubbleState.THINKING || state == BubbleState.SPEAKING
             if (animated) startAnimation() else stopAnimation()
             contentDescription = when (state) {
-                BubbleState.IDLE -> "Rehnuma"
-                BubbleState.LISTENING -> "Rehnuma sun rahi hai"
-                BubbleState.THINKING -> "Rehnuma soch rahi hai"
-                BubbleState.SPEAKING -> "Rehnuma bol rahi hai"
-                BubbleState.PAUSED -> "Rehnuma ruki hui hai"
-                BubbleState.ERROR -> "Dobara koshish"
+                BubbleState.IDLE -> "Pointly"
+                BubbleState.LISTENING -> "Pointly is listening"
+                BubbleState.THINKING -> "Pointly is thinking"
+                BubbleState.SPEAKING -> "Pointly is speaking"
+                BubbleState.PAUSED -> "Pointly is paused"
+                BubbleState.ERROR -> "Try again"
             }
             invalidate()
         }
@@ -262,7 +262,7 @@ class BubbleOverlay(private val context: Context, private val listener: Listener
             when (state) {
                 BubbleState.IDLE, BubbleState.ERROR -> {
                     val y = cy - (letter.descent() + letter.ascent()) / 2
-                    canvas.drawText("ر", cx, y, letter)
+                    canvas.drawText("P", cx, y, letter)
                 }
                 BubbleState.LISTENING -> drawMic(canvas, cx, cy)
                 BubbleState.THINKING -> drawDots(canvas, cx, cy)

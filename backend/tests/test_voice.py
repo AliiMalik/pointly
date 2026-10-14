@@ -23,7 +23,7 @@ class FakeTts:
         self.calls: list[str] = []
         self.fail = fail
 
-    def synthesize(self, text: str) -> bytes:
+    def synthesize(self, text: str, language: str = "ur") -> bytes:
         self.calls.append(text)
         if self.fail:
             raise TtsError("no credentials")
@@ -37,22 +37,21 @@ def client_with(settings, provider=None, tts=None) -> TestClient:
 # ---- /v1/stt ----
 
 def test_stt_transcribes_wav(settings, auth):
-    fake = FakeProvider({"text_urdu": "بیٹی کو تصویر بھیجنی ہے", "text_roman": "Beti ko photo bhejni hai"})
+    fake = FakeProvider({"text": "بیٹی کو تصویر بھیجنی ہے"})
     r = client_with(settings, fake).post(
         "/v1/stt", headers=auth, files={"audio": ("speech.wav", make_wav(2.0), "audio/wav")},
     )
     assert r.status_code == 200
     body = r.json()
-    assert body["text_roman"] == "Beti ko photo bhejni hai"
-    assert body["text_urdu"] == "بیٹی کو تصویر بھیجنی ہے"
+    assert body["text"] == "بیٹی کو تصویر بھیجنی ہے"
     assert isinstance(body["latency_ms"], int)
     assert fake.audio[0][1] == "audio/wav"
 
 
 def test_stt_masks_numbers(settings, auth):
-    fake = FakeProvider({"text_urdu": "", "text_roman": "0300 1234567 pe call karni hai"})
+    fake = FakeProvider({"text": "Call 0300 1234567 please"})
     r = client_with(settings, fake).post("/v1/stt", headers=auth, files={"audio": ("a.wav", make_wav(1), "audio/wav")})
-    assert r.json()["text_roman"] == "[number] pe call karni hai"
+    assert r.json()["text"] == "Call [number] please"
 
 
 def test_stt_needs_key(settings):
@@ -76,7 +75,7 @@ def test_stt_rejects_broken_wav(settings, auth):
 
 
 def test_stt_accepts_ogg(settings, auth):
-    fake = FakeProvider({"text_urdu": "سلام", "text_roman": "Salam"})
+    fake = FakeProvider({"text": "Hello"})
     r = client_with(settings, fake).post("/v1/stt", headers=auth, files={"audio": ("a.ogg", b"OggS....", "audio/ogg")})
     assert r.status_code == 200
     assert fake.audio[0][1] == "audio/ogg"
@@ -116,3 +115,11 @@ def test_tts_needs_key_and_text(settings, auth):
 def test_tts_unconfigured_is_503(settings, auth):
     c = TestClient(create_app(settings, provider=FakeProvider()))  # TTS_MODEL not set
     assert c.post("/v1/tts", headers=auth, json={"text": "سلام"}).status_code == 503
+
+
+def test_tts_caches_each_language_separately(settings, auth):
+    engine = FakeTts()
+    c = client_with(settings, tts=engine)
+    assert c.post("/v1/tts", headers=auth, json={"text": "OK", "language": "en"}).status_code == 200
+    assert c.post("/v1/tts", headers=auth, json={"text": "OK", "language": "ur"}).status_code == 200
+    assert len(engine.calls) == 2

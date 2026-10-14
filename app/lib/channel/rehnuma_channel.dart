@@ -7,14 +7,15 @@ class RehnumaState {
     required this.state,
     this.goalText,
     this.step,
-    this.captionRoman,
+    this.caption,
     this.error,
   });
 
   final String state;
   final String? goalText;
   final int? step;
-  final String? captionRoman;
+  /// The current instruction in the user's language.
+  final String? caption;
   final String? error;
 
   static const idle = RehnumaState(state: 'IDLE');
@@ -23,12 +24,12 @@ class RehnumaState {
         state: (m['state'] as String?) ?? 'IDLE',
         goalText: m['goalText'] as String?,
         step: m['step'] as int?,
-        captionRoman: m['captionRoman'] as String?,
+        caption: m['caption'] as String?,
         error: m['error'] as String?,
       );
 }
 
-/// Status of the three things Rehnuma needs before it can start.
+/// Status of the three things Pointly needs before it can start.
 class PermissionStatus {
   const PermissionStatus({
     required this.accessibility,

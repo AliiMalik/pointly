@@ -9,9 +9,9 @@
   "history": [
     {
       "step": 1,
-      "instruction_roman": "Display and touch wala option dabayein",
       "target_label": "Display & touch · Dark theme, font size, touch",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Display and touch wala option dabayein"
     }
   ],
   "screen": {

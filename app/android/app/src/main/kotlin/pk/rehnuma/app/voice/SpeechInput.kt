@@ -27,23 +27,22 @@ import pk.rehnuma.app.config.AppConfig
 import pk.rehnuma.app.net.PlannerClient
 import java.io.ByteArrayOutputStream
 
-/** SPEC 5.10 result. Exactly one of the texts is usually filled. */
+/** SPEC 5.10 result. */
 data class SpeechResult(
-    val textUrdu: String?,
-    val textRoman: String?,
+    val text: String?,
     val source: String, // "device" | "cloud"
     val ms: Long,
     val error: String? = null,
 ) {
-    /** What the planner gets: Roman Urdu when available, otherwise the Urdu-script text. */
+    /** What the planner gets, or null when nothing was heard. */
     val bestText: String?
-        get() = textRoman?.takeIf { it.isNotBlank() } ?: textUrdu?.takeIf { it.isNotBlank() }
+        get() = text?.takeIf { it.isNotBlank() }
 }
 
 /**
- * Urdu speech input (SPEC 5.10). Android `SpeechRecognizer` with `ur-PK` first; the backend
- * `/v1/stt` (16 kHz mono WAV recorded while the bubble is held) when the device can't do Urdu or
- * Settings asks for Cloud. Main thread only.
+ * Speech input (SPEC 5.10) in the chosen language. Android `SpeechRecognizer` (`en-US` or `ur-PK`)
+ * first; the backend `/v1/stt` (16 kHz mono WAV recorded while the bubble is held) when the device
+ * can't do that language or Settings asks for Cloud. Main thread only.
  */
 class SpeechInput(
     private val context: Context,
@@ -67,8 +66,9 @@ class SpeechInput(
     private var holding = false
     private var delivered = false
 
-    /** Set after the device recognizer reports that Urdu is not supported; later sessions use the cloud. */
-    private var deviceUrduBroken = false
+    /** Languages the device recognizer reported as unsupported; later sessions use the cloud for them. */
+    private val brokenLanguages = mutableSetOf<String>()
+    private var language = "en-US"
 
     val isListening: Boolean
         get() = listener != null && !delivered
@@ -80,10 +80,11 @@ class SpeechInput(
         holding = true
         startedAt = SystemClock.elapsedRealtime()
         if (!hasMic()) {
-            deliver(SpeechResult(null, null, "device", 0, error = "microphone permission"))
+            deliver(SpeechResult(null, "device", 0, error = "microphone permission"))
             return
         }
-        val useDevice = config().voiceIn == AppConfig.VOICE_DEVICE && !deviceUrduBroken &&
+        language = if (config().language == AppConfig.LANG_UR) "ur-PK" else "en-US"
+        val useDevice = config().voiceIn == AppConfig.VOICE_DEVICE && language !in brokenLanguages &&
             SpeechRecognizer.isRecognitionAvailable(context)
         if (useDevice) startDevice() else startCloud()
     }
@@ -118,7 +119,7 @@ class SpeechInput(
     }
 
     private val stopTimeout = Runnable {
-        if (!delivered) deliver(SpeechResult(null, null, "device", elapsed()))
+        if (!delivered) deliver(SpeechResult(null, "device", elapsed()))
     }
 
     // ---------------------------------------------------------------- device recognizer
@@ -141,13 +142,13 @@ class SpeechInput(
 
             override fun onResults(results: Bundle?) {
                 val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                deliver(SpeechResult(textUrdu = text, textRoman = null, source = "device", ms = elapsed()))
+                deliver(SpeechResult(text = text, source = "device", ms = elapsed()))
             }
 
             override fun onError(error: Int) {
                 Log.i(TAG, "recognizer error $error")
                 if (error == ERROR_LANGUAGE_NOT_SUPPORTED || error == ERROR_LANGUAGE_UNAVAILABLE) {
-                    deviceUrduBroken = true
+                    brokenLanguages += language
                     destroyRecognizer()
                     // Still holding: switch to recording for the cloud right away.
                     if (holding) {
@@ -156,11 +157,11 @@ class SpeechInput(
                     }
                 }
                 val silent = error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
-                deliver(SpeechResult(null, null, "device", elapsed(), error = if (silent) null else "recognizer error $error"))
+                deliver(SpeechResult(null, "device", elapsed(), error = if (silent) null else "recognizer error $error"))
             }
         })
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ur-PK")
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
@@ -185,14 +186,14 @@ class SpeechInput(
             val pcm = withContext(Dispatchers.IO) { record() }
             if (listener == null) return@launch
             if (pcm == null || pcm.size < SAMPLE_RATE / 4 * 2) { // under 0.25 s: nothing said
-                deliver(SpeechResult(null, null, "cloud", elapsed(), error = if (pcm == null) "recording failed" else null))
+                deliver(SpeechResult(null, "cloud", elapsed(), error = if (pcm == null) "recording failed" else null))
                 return@launch
             }
             listener?.onTranscribing()
             Log.d(TAG, "uploading ${pcm.size / 2 / (SAMPLE_RATE / 1000)} ms of audio")
             when (val r = client.stt(Wav.wrap(pcm, SAMPLE_RATE))) {
-                is PlannerClient.Result.Ok -> deliver(SpeechResult(r.value.textUrdu, r.value.textRoman, "cloud", elapsed()))
-                is PlannerClient.Result.Failed -> deliver(SpeechResult(null, null, "cloud", elapsed(), error = "stt ${r.failure}"))
+                is PlannerClient.Result.Ok -> deliver(SpeechResult(r.value.text, "cloud", elapsed()))
+                is PlannerClient.Result.Failed -> deliver(SpeechResult(null, "cloud", elapsed(), error = "stt ${r.failure}"))
             }
         }
     }

@@ -23,9 +23,9 @@ class WavTest {
         assertEquals(pcm.size, b.getInt(40))
     }
 
-    @Test fun bestTextPrefersRoman() {
-        assertEquals("Salam", SpeechResult("سلام", "Salam", "cloud", 1).bestText)
-        assertEquals("سلام", SpeechResult("سلام", " ", "device", 1).bestText)
-        assertEquals(null, SpeechResult(null, null, "device", 1).bestText)
+    @Test fun bestTextSkipsBlank() {
+        assertEquals("Turn on WiFi", SpeechResult("Turn on WiFi", "cloud", 1).bestText)
+        assertEquals(null, SpeechResult(" ", "device", 1).bestText)
+        assertEquals(null, SpeechResult(null, "device", 1).bestText)
     }
 }

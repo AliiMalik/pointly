@@ -8,8 +8,8 @@ from app.llm.base import Turn
 from app.llm.gemini import GeminiProvider
 from app.schemas import LLMPlan
 
-ANSWER = {"action": "done", "element_id": None, "scroll_direction": None, "say_urdu": "شاباش",
-          "say_roman": "Shabash", "goal_key": "g", "confidence": 1, "reason": "r"}
+ANSWER = {"action": "done", "element_id": None, "scroll_direction": None, "say_en": "Well done",
+          "say_ur": "شاباش", "goal_key": "g", "confidence": 1, "reason": "r"}
 
 
 class FakeModels:

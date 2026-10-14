@@ -26,7 +26,7 @@ class LLMProvider(Protocol):
         ...
 
     async def transcribe(self, audio: bytes, mime: str) -> dict:
-        """Returns {"text_urdu": ..., "text_roman": ...}. Raises LLMError."""
+        """Returns {"text": ...} as spoken (English or Urdu script). Raises LLMError."""
         ...
 
 

@@ -35,7 +35,7 @@ SCREEN_LINE = re.compile(r'^SCREEN \(package=([^,]+), size=[^,)]+(?:, title=(".*
 def load_script() -> list[dict]:
     """`MOCK_SCRIPT=rules.json`: scripted answers for rehearsals. Each rule may match on `goal`
     (substring), `package`, `title` (window title) and `step`, and answers with `action` (and
-    `label`, a substring of the element to tap, plus optional `say_roman`/`say_urdu`)."""
+    `label`, a substring of the element to tap, plus optional `say_en`/`say_ur`)."""
     path = os.environ.get("MOCK_SCRIPT")
     if not path:
         return []
@@ -79,8 +79,8 @@ class MockProvider:
             return {
                 "action": action, "element_id": element_id,
                 "scroll_direction": rule.get("scroll_direction", "down" if action == "scroll" else None),
-                "say_urdu": rule.get("say_urdu", "یہاں دبائیں"),
-                "say_roman": rule.get("say_roman", "Yahan dabayein"),
+                "say_en": rule.get("say_en", "Tap here"),
+                "say_ur": rule.get("say_ur", "یہاں دبائیں"),
                 "goal_key": rule.get("goal_key", "mock_scripted"), "confidence": 0.9, "reason": "mock script",
             }
         return None
@@ -116,25 +116,25 @@ class MockProvider:
         slug = "mock_" + "_".join(WORD.findall(goal))[:30]
         if best is not None:
             name = best_label.split(" · ")[0].split(" | ")[0]
-            words = f"{name} wala button dabayein".split()[:12]
+            words = f"Tap {name}".split()[:12]
             return {
                 "action": "tap", "element_id": best, "scroll_direction": None,
-                "say_urdu": "یہاں دبائیں", "say_roman": " ".join(words),
+                "say_en": " ".join(words), "say_ur": "یہاں دبائیں",
                 "goal_key": slug, "confidence": min(1.0, 0.4 + 0.2 * best_score), "reason": "mock keyword match",
             }
         if scrollable is not None:
             return {
                 "action": "scroll", "element_id": scrollable, "scroll_direction": "down",
-                "say_urdu": "نیچے سکرول کریں", "say_roman": "Neeche scroll karein",
+                "say_en": "Scroll down", "say_ur": "نیچے سکرول کریں",
                 "goal_key": slug, "confidence": 0.3, "reason": "mock: nothing matched, scroll",
             }
         return {
             "action": "cant_help", "element_id": None, "scroll_direction": None,
-            "say_urdu": "اس کام میں میں ابھی مدد نہیں کر سکتی۔",
-            "say_roman": "Is kaam mein main abhi madad nahi kar sakti.",
+            "say_en": "Sorry, I can't help with this task yet.",
+            "say_ur": "اس کام میں میں ابھی مدد نہیں کر سکتی۔",
             "goal_key": slug, "confidence": 0.0, "reason": "mock: no match",
         }
 
     async def transcribe(self, audio: bytes, mime: str) -> dict:
         # MOCK_STT_TEXT lets you rehearse the spoken flow on an emulator without a microphone.
-        return {"text_urdu": "", "text_roman": os.environ.get("MOCK_STT_TEXT", "")}
+        return {"text": os.environ.get("MOCK_STT_TEXT", "")}

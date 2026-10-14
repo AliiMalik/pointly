@@ -5,12 +5,12 @@ import json
 from .schemas import Element, HistoryItem, PlanRequest
 
 SYSTEM = """\
-You are Rehnuma, a patient guide that helps first-time smartphone users in Pakistan
+You are Pointly, a patient guide that helps first-time smartphone users in Pakistan
 complete tasks on Android. You NEVER act for the user. You only tell the user which ONE
 element on the current screen to press, type into or scroll next.
 
 You receive:
-- GOAL: what the user wants, in Urdu or Roman Urdu.
+- GOAL: what the user wants, in English, Urdu or Roman Urdu.
 - HISTORY: the steps already guided and whether the user followed them.
 - SCREEN: the package name and a numbered list of on-screen elements with labels and positions.
 
@@ -30,18 +30,18 @@ Rules:
 7. If the next step would be entering a PIN, password, OTP or confirming a payment, choose "done"
    and say that the user should do this part themselves.
 8. If the task is impossible from here or unsafe, choose "cant_help".
-9. Write say_urdu in simple Urdu script (Arabic letters, e.g. "سبز بٹن دبائیں") and say_roman in simple
-   Roman Urdu (English letters only, e.g. "Sabz button dabayein"). Never put Roman letters in say_urdu,
-   except app names like WhatsApp. One short sentence,
-   at most 12 words, polite form ("dabayein", "likhein"). Describe the element the way a user sees it:
-   by its colour, icon or text (for example "hara WhatsApp icon", "neeche wala bheejne ka teer").
+9. Write say_en in simple, warm English for someone using a smartphone for the first time, and
+   say_ur with the same meaning in simple Urdu script (Arabic letters). One short sentence each, at most
+   12 words, starting with the action ("Tap", "Type", "Scroll", "Slide"). Describe the element the way a
+   user sees it: by its colour, icon or text, e.g. say_en "Tap the green WhatsApp icon" and
+   say_ur "سبز واٹس ایپ آئیکن دبائیں". Never put Roman letters in say_ur, except app names like WhatsApp.
 10. Never mention element ids, "element", "node" or technical words to the user.
 11. Return only JSON that matches the schema.
 
 More details:
 - element_id is required for tap, type, scroll and drag, and must be null for the other actions.
 - For "type", tell the user what to type; the user types it themselves.
-- For "back" or "home", say how: "Neeche peeche wala button dabayein" or "Neeche se upar swipe karein".
+- For "back" or "home", say how: "Tap the back button at the bottom" or "Swipe up from the bottom".
 - goal_key is a short snake_case English slug for the whole task, the same on every step
   (for example "whatsapp_send_photo", "settings_font_size", "wifi_on", "call_contact", "mobile_load").
 - confidence is between 0 and 1. reason is English, at most 25 words, for logs only.
@@ -89,7 +89,7 @@ def history_lines(history: list[HistoryItem]) -> str:
     lines = []
     for h in history[-8:]:
         target = f" -> {h.target_label}" if h.target_label else ""
-        lines.append(f'{h.step}. "{h.instruction_roman}"{target} [{h.outcome}]')
+        lines.append(f'{h.step}. "{h.instruction}"{target} [{h.outcome}]')
     return "\n".join(lines)
 
 
@@ -123,7 +123,7 @@ FEW_SHOT: list[tuple[str, str]] = [
         user_message(_req(
             "Beti Sara ko WhatsApp pe photo bhejni hai",
             2,
-            [{"step": 1, "instruction_roman": "Yeh hara WhatsApp icon dabayein", "target_label": "WhatsApp", "outcome": "done"}],
+            [{"step": 1, "instruction": "Tap the green WhatsApp icon", "target_label": "WhatsApp", "outcome": "done"}],
             "com.whatsapp",
             [
                 {"id": 1, "text": "WhatsApp", "cls": "TextView", "bounds": [40, 120, 400, 200]},
@@ -141,18 +141,18 @@ FEW_SHOT: list[tuple[str, str]] = [
         )),
         json.dumps({
             "action": "tap", "element_id": 7, "scroll_direction": None,
-            "say_urdu": "سارہ کے نام پر دبائیں", "say_roman": "Sara ke naam pe dabayein",
+            "say_en": "Tap Sara's name", "say_ur": "سارہ کے نام پر دبائیں",
             "goal_key": "whatsapp_send_photo", "confidence": 0.94,
             "reason": "Sara's chat is visible in the chat list; opening it is the next step.",
         }, ensure_ascii=False),
     ),
     (
         user_message(_req(
-            "Phone ke likhai bari karni hai",
+            "Make the text bigger",
             3,
             [
-                {"step": 1, "instruction_roman": "Settings ka gear icon dabayein", "target_label": "Settings", "outcome": "done"},
-                {"step": 2, "instruction_roman": "Display wala option dabayein", "target_label": "Display & touch", "outcome": "done"},
+                {"step": 1, "instruction": "Tap the grey Settings gear", "target_label": "Settings", "outcome": "done"},
+                {"step": 2, "instruction": "Tap Display & touch", "target_label": "Display & touch", "outcome": "done"},
             ],
             "com.android.settings",
             [
@@ -171,8 +171,8 @@ FEW_SHOT: list[tuple[str, str]] = [
         )),
         json.dumps({
             "action": "tap", "element_id": 9, "scroll_direction": None,
-            "say_urdu": "ڈسپلے سائز اور ٹیکسٹ والا آپشن دبائیں",
-            "say_roman": "Display size and text wala option dabayein",
+            "say_en": "Tap Display size and text",
+            "say_ur": "ڈسپلے سائز اور ٹیکسٹ والا آپشن دبائیں",
             "goal_key": "settings_font_size", "confidence": 0.9,
             "reason": "Font size lives under Display size & text on this Settings screen.",
         }, ensure_ascii=False),

@@ -1,23 +1,72 @@
 [
-  {"goal": "likhai", "title": "Settings", "action": "tap", "label": "Display & touch",
-   "say_roman": "Display and touch wala option dabayein", "say_urdu": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں", "goal_key": "settings_font_size"},
-  {"goal": "likhai", "title": "Display & touch", "action": "tap", "label": "Display size & text",
-   "say_roman": "Display size and text dabayein, phir likhai bari karein", "say_urdu": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں", "goal_key": "settings_font_size"},
-  {"goal": "likhai", "title": "Display size & text", "action": "done",
-   "say_roman": "Ab plus wala button khud dabayein", "say_urdu": "اب پلس والا بٹن خود دبائیں", "goal_key": "settings_font_size"},
-
-  {"goal": "user answer", "title": "Settings", "action": "tap", "label": "Network & internet",
-   "say_roman": "Network and internet dabayein", "say_urdu": "نیٹ ورک اینڈ انٹرنیٹ دبائیں", "goal_key": "wifi_on"},
-  {"goal": "wifi", "title": "Settings", "action": "ask",
-   "say_roman": "Kaun sa WiFi network chahiye?", "say_urdu": "کون سا وائی فائی نیٹ ورک چاہیے؟", "goal_key": "wifi_on"},
-
-  {"goal": "call", "package": "com.google.android.dialer", "action": "tap", "label": "Home",
-   "say_roman": "Upar Home wala tab dabayein", "say_urdu": "ہوم والا ٹیب دبائیں", "goal_key": "call_contact"},
-
-  {"goal": "dhoond", "step": 1, "title": "Settings", "action": "tap", "label": "Search Settings",
-   "say_roman": "Upar search wali patti dabayein", "say_urdu": "اوپر سرچ والی پٹی دبائیں", "goal_key": "settings_search"},
-  {"goal": "dhoond", "step": 2, "action": "type", "label": "Search",
-   "say_roman": "Yahan wifi likhein", "say_urdu": "یہاں وائی فائی لکھیں", "goal_key": "settings_search"},
-  {"goal": "dhoond", "step": 3, "action": "done",
-   "say_roman": "Shabash", "say_urdu": "شاباش", "goal_key": "settings_search"}
+  {
+    "goal": "likhai",
+    "title": "Settings",
+    "action": "tap",
+    "label": "Display & touch",
+    "goal_key": "settings_font_size",
+    "say_ur": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں"
+  },
+  {
+    "goal": "likhai",
+    "title": "Display & touch",
+    "action": "tap",
+    "label": "Display size & text",
+    "goal_key": "settings_font_size",
+    "say_ur": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں"
+  },
+  {
+    "goal": "likhai",
+    "title": "Display size & text",
+    "action": "done",
+    "goal_key": "settings_font_size",
+    "say_ur": "اب پلس والا بٹن خود دبائیں"
+  },
+  {
+    "goal": "user answer",
+    "title": "Settings",
+    "action": "tap",
+    "label": "Network & internet",
+    "goal_key": "wifi_on",
+    "say_ur": "نیٹ ورک اینڈ انٹرنیٹ دبائیں"
+  },
+  {
+    "goal": "wifi",
+    "title": "Settings",
+    "action": "ask",
+    "goal_key": "wifi_on",
+    "say_ur": "کون سا وائی فائی نیٹ ورک چاہیے؟"
+  },
+  {
+    "goal": "call",
+    "package": "com.google.android.dialer",
+    "action": "tap",
+    "label": "Home",
+    "goal_key": "call_contact",
+    "say_ur": "ہوم والا ٹیب دبائیں"
+  },
+  {
+    "goal": "dhoond",
+    "step": 1,
+    "title": "Settings",
+    "action": "tap",
+    "label": "Search Settings",
+    "goal_key": "settings_search",
+    "say_ur": "اوپر سرچ والی پٹی دبائیں"
+  },
+  {
+    "goal": "dhoond",
+    "step": 2,
+    "action": "type",
+    "label": "Search",
+    "goal_key": "settings_search",
+    "say_ur": "یہاں وائی فائی لکھیں"
+  },
+  {
+    "goal": "dhoond",
+    "step": 3,
+    "action": "done",
+    "goal_key": "settings_search",
+    "say_ur": "شاباش"
+  }
 ]

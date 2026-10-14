@@ -14,7 +14,7 @@ EXAMPLE_REQUEST = {
     "goal_text": "Beti Sara ko WhatsApp pe photo bhejni hai",
     "step_index": 2,
     "history": [
-        {"step": 1, "instruction_roman": "Yeh hara WhatsApp icon dabayein", "target_label": "WhatsApp", "outcome": "done"}
+        {"step": 1, "instruction": "Tap the green WhatsApp icon", "target_label": "WhatsApp", "outcome": "done"}
     ],
     "screen": {
         "package": "com.whatsapp",
@@ -27,15 +27,15 @@ EXAMPLE_REQUEST = {
             {"id": 3, "desc": "New chat", "cls": "ImageButton", "clickable": True, "bounds": [900, 2100, 1040, 2240]},
         ],
     },
-    "prefs": {"caption": "roman"},
+    "prefs": {"language": "en"},
 }
 
 GOOD_ANSWER = {
     "action": "tap",
     "element_id": 2,
     "scroll_direction": None,
-    "say_urdu": "سارہ کے نام پر دبائیں",
-    "say_roman": "Sara ke naam pe dabayein",
+    "say_en": "Tap Sara's name",
+    "say_ur": "سارہ کے نام پر دبائیں",
     "goal_key": "whatsapp_send_photo",
     "confidence": 0.92,
     "reason": "Chat with Sara is visible; opening it is the next step.",

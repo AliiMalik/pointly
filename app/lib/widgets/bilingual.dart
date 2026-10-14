@@ -2,39 +2,37 @@ import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
 
-/// Urdu line (right-to-left, larger) above an English line.
+/// A [Bi] string in the current language: English left-to-right, or Urdu right-to-left with
+/// extra line height for the script.
 class BiText extends StatelessWidget {
-  const BiText(this.text, {super.key, this.size = 20, this.color, this.center = false});
+  const BiText(this.text, {super.key, this.size = 20, this.color, this.center = false, this.bold = true});
 
   final Bi text;
   final double size;
   final Color? color;
   final bool center;
+  final bool bold;
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     final c = color ?? Theme.of(context).colorScheme.onSurface;
-    return Column(
-      crossAxisAlignment: center ? CrossAxisAlignment.center : CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          text.ur,
-          textDirection: TextDirection.rtl,
-          textAlign: center ? TextAlign.center : TextAlign.right,
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w600, color: c, height: 1.6),
-        ),
-        Text(
-          text.en,
-          textAlign: center ? TextAlign.center : TextAlign.left,
-          style: TextStyle(fontSize: size * 0.7, color: c.withValues(alpha: 0.75)),
-        ),
-      ],
+    final urdu = Lang.isUrdu;
+    return Text(
+      text.text,
+      textDirection: Lang.direction,
+      textAlign: center ? TextAlign.center : TextAlign.start,
+      style: TextStyle(
+        fontSize: size,
+        fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+        color: c,
+        height: urdu ? 1.6 : 1.3,
+      ),
     );
   }
 }
 
-/// Large, high-contrast button (at least 56 dp tall) with a bilingual label.
+/// Large, high-contrast button (at least 56 dp tall).
 class BigButton extends StatelessWidget {
   const BigButton({
     super.key,

@@ -86,7 +86,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
         debugBoxes = DebugBoxesOverlay(this)
         pointer = PointerOverlay(this)
         bubble = BubbleOverlay(this, bubbleListener)
-        panel = QuickPanel(this, panelListener)
+        panel = QuickPanel(this, { config.language }, panelListener)
         planner = PlannerClient({ config })
         speechOut = SpeechOutput(this, { config }, planner, scope)
         speechIn = SpeechInput(this, { config }, planner, scope)
@@ -222,27 +222,27 @@ class RehnumaAccessibilityService : AccessibilityService() {
             pointer.keyboardTop = keyboardTop()
             // HINT/SILENT levels start without hand or ring; both appear if the user hesitates.
             pointer.show(
-                target, caption, urduScript = config.caption == AppConfig.CAPTION_URDU,
+                target, caption, urduScript = config.language == AppConfig.LANG_UR,
                 from = bubble.bubbleCenterOnScreen(), withHand = withHand, withRing = withHand, onArrived = onArrived,
             )
         }
 
         override fun caption(text: String?) {
             pointer.keyboardTop = keyboardTop()
-            if (text == null) pointer.hideAll() else pointer.showCaption(text, config.caption == AppConfig.CAPTION_URDU)
+            if (text == null) pointer.hideAll() else pointer.showCaption(text, config.language == AppConfig.LANG_UR)
         }
 
         override fun revealHand() = pointer.revealHand(bubble.bubbleCenterOnScreen())
 
         override fun movePointer(target: PointerTarget) = pointer.moveTo(target)
 
-        override fun flashCaption(text: String) = pointer.flashCaption(text, config.caption == AppConfig.CAPTION_URDU)
+        override fun flashCaption(text: String) = pointer.flashCaption(text, config.language == AppConfig.LANG_UR)
 
         override fun clear() = pointer.hideAll()
 
-        override fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?) {
+        override fun emit(state: SessionState, goalText: String?, step: Int?, caption: String?, error: String?) {
             Log.d(TAG, "state $state step=$step${error?.let { " error=$it" } ?: ""}") // never screen text
-            RehnumaEvents.emit(state.name, goalText, step, captionRoman, error)
+            RehnumaEvents.emit(state.name, goalText, step, caption, error)
         }
     }
 
@@ -297,7 +297,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
             override fun onTranscribing() = session.transcribing()
 
             override fun onResult(result: SpeechResult) {
-                if (result.error == "microphone permission") toast("Mic ki ijazat dein (Rehnuma app → Ijazatein)")
+                if (result.error == "microphone permission") toast("Please allow the microphone (Pointly app → Permissions)")
                 session.speechResult(result.bestText)
             }
         })
@@ -312,7 +312,7 @@ class RehnumaAccessibilityService : AccessibilityService() {
                 delay(400) // let the panel close and the app below settle
                 val e = readScreen()?.element(elementId)
                 if (e == null) {
-                    toast("#$elementId nahi mila")
+                    toast("#$elementId not found")
                     return@launch
                 }
                 bubble.showClose = true
@@ -372,12 +372,12 @@ class RehnumaAccessibilityService : AccessibilityService() {
     suspend fun saveSnapshotNow() {
         val snapshot = readScreen()
         if (snapshot == null || snapshot.packageName == packageName) {
-            toast("Koi screen nahi mili")
+            toast("No screen found")
             return
         }
         val result = withContext(Dispatchers.IO) { SnapshotSaver.save(this@RehnumaAccessibilityService, snapshot) }
         when (result) {
-            is SnapshotSaver.Result.Sensitive -> toast("Yeh screen save nahi hogi (PIN/password)")
+            is SnapshotSaver.Result.Sensitive -> toast("This screen is not saved (PIN/password)")
             is SnapshotSaver.Result.Saved -> {
                 toast("Saved: ${result.file.name}")
                 SnapshotSaver.share(this, result.file)

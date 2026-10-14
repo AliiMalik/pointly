@@ -9,15 +9,15 @@
   "history": [
     {
       "step": 1,
-      "instruction_roman": "Display and touch wala option dabayein",
       "target_label": "Display & touch · Dark theme, font size, touch",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Display and touch wala option dabayein"
     },
     {
       "step": 2,
-      "instruction_roman": "Display size and text dabayein",
       "target_label": "Display size & text · Font size, display size, bold text, ou",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Display size and text dabayein"
     }
   ],
   "screen": {

@@ -27,8 +27,8 @@ class PlanCache(private val file: File?) {
         val action: String,
         val target: Target? = null,
         val scrollDirection: String? = null,
-        val sayUrdu: String,
-        val sayRoman: String,
+        val sayEn: String,
+        val sayUr: String,
     )
 
     data class Hit(val step: Step, val element: ScreenElement?)

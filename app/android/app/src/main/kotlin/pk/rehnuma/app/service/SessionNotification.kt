@@ -17,7 +17,7 @@ import pk.rehnuma.app.MainActivity
 import pk.rehnuma.app.R
 
 /**
- * Persistent notification shown while the bubble is visible, with a "Band karein" action
+ * Persistent notification shown while the bubble is visible, with a "Stop" action
  * that stops the session and hides the bubble (SPEC 5.1, rule 7).
  */
 class SessionNotification(private val context: Context, private val onStop: () -> Unit) {

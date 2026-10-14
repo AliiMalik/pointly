@@ -1,7 +1,7 @@
 import json
 
 from app import prompts
-from app.planner import CANT_HELP_ROMAN, validate_plan
+from app.planner import CANT_HELP_EN, validate_plan
 from app.schemas import Element
 from tests.conftest import FakeProvider, LLMError
 
@@ -23,7 +23,7 @@ def test_good_plan(make_client, auth, example_request, good_answer):
     body = r.json()
     assert body["action"] == "tap"
     assert body["element_id"] == 2
-    assert body["say_roman"] == "Sara ke naam pe dabayein"
+    assert body["say_en"] == "Tap Sara's name"
     assert body["goal_key"] == "whatsapp_send_photo"
     assert isinstance(body["latency_ms"], int)
     assert len(fake.calls) == 1
@@ -59,7 +59,7 @@ def test_invalid_twice_is_cant_help(make_client, auth, example_request, good_ans
     body = r.json()
     assert body["action"] == "cant_help"
     assert body["element_id"] is None
-    assert body["say_roman"] == CANT_HELP_ROMAN
+    assert body["say_en"] == CANT_HELP_EN
     assert len(fake.calls) == 2
 
 
@@ -133,13 +133,13 @@ def test_tap_needs_element(good_answer):
 
 
 def test_too_many_words(good_answer):
-    long = "Yeh wala bohat bara hara button jo neeche hai usko abhi foran zor se dabayein"
-    plan, err = validate_plan(dict(good_answer, say_roman=long), IDS)
-    assert plan is None and "say_roman" in err
+    long = "Please tap the big round green button that you can see right down at the bottom"
+    plan, err = validate_plan(dict(good_answer, say_en=long), IDS)
+    assert plan is None and "say_en" in err
 
 
 def test_technical_words_rejected(good_answer):
-    plan, err = validate_plan(dict(good_answer, say_roman="Element #2 dabayein"), IDS)
+    plan, err = validate_plan(dict(good_answer, say_en="Tap element #2"), IDS)
     assert plan is None
 
 
@@ -193,8 +193,8 @@ def test_mock_script_rules(settings, auth, tmp_path, monkeypatch):
 
     script = tmp_path / "s.json"
     script.write_text(
-        '[{"goal": "likhai", "title": "Display & touch", "label": "Display size", "say_roman": "Isay dabayein", "goal_key": "settings_font_size"},'
-        ' {"goal": "likhai", "package": "com.android.settings", "action": "done", "say_roman": "Shabash"}]',
+        '[{"goal": "likhai", "title": "Display & touch", "label": "Display size", "say_en": "Tap this", "goal_key": "settings_font_size"},'
+        ' {"goal": "likhai", "package": "com.android.settings", "action": "done", "say_en": "Well done"}]',
         encoding="utf-8",
     )
     monkeypatch.setenv("MOCK_SCRIPT", str(script))
@@ -211,25 +211,30 @@ def test_mock_script_rules(settings, auth, tmp_path, monkeypatch):
     assert c.post("/v1/plan", json=req, headers=auth).json()["action"] == "done"
 
 
-def test_roman_text_in_say_urdu_is_rejected(good_answer):
-    plan, err = validate_plan(dict(good_answer, say_urdu="Sara ke naam pe dabayein"), IDS)
+def test_roman_text_in_say_ur_is_rejected(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_ur="Sara ke naam pe dabayein"), IDS)
     assert plan is None and "Urdu script" in err
 
 
 def test_app_name_in_urdu_sentence_is_fine(good_answer):
-    plan, err = validate_plan(dict(good_answer, say_urdu="سبز WhatsApp آئیکن دبائیں"), IDS)
+    plan, err = validate_plan(dict(good_answer, say_ur="سبز WhatsApp آئیکن دبائیں"), IDS)
     assert err is None
 
 
-def test_other_scripts_in_say_roman_are_rejected(good_answer):
-    plan, err = validate_plan(dict(good_answer, say_roman="Plus ka nishాన్ dabayein"), IDS)
-    assert plan is None and "Latin" in err
+def test_other_scripts_in_say_en_are_rejected(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_en="Tap the plus sign ాన్"), IDS)
+    assert plan is None and "plain English" in err
+
+
+def test_urdu_text_in_say_en_is_rejected(good_answer):
+    plan, err = validate_plan(dict(good_answer, say_en="سارہ کے نام پر دبائیں"), IDS)
+    assert plan is None and "say_en" in err
 
 
 def test_roman_in_urdu_triggers_retry(make_client, auth, example_request, good_answer):
-    fake = FakeProvider(dict(good_answer, say_urdu="Sara ke naam pe dabayein"), good_answer)
+    fake = FakeProvider(dict(good_answer, say_ur="Sara ke naam pe dabayein"), good_answer)
     body = post(make_client(fake), example_request, auth).json()
-    assert body["say_urdu"] == good_answer["say_urdu"]
+    assert body["say_ur"] == good_answer["say_ur"]
     assert "Urdu script" in fake.calls[1][-1].text
 
 

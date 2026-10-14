@@ -20,7 +20,7 @@ class PlannerClientTest {
     private var retries = 0
 
     private val okBody = """{"action":"tap","element_id":2,"scroll_direction":null,
-        "say_urdu":"سارہ کے نام پر دبائیں","say_roman":"Sara ke naam pe dabayein",
+        "say_en":"Tap Sara's name","say_ur":"سارہ کے نام پر دبائیں",
         "goal_key":"whatsapp_send_photo","confidence":0.92,"reason":"r","latency_ms":1430,"extra":1}"""
 
     private val request = PlanRequest(

@@ -50,7 +50,7 @@ class Outcome:
     case: Case
     action: str | None = None
     element_id: int | None = None
-    say_roman: str = ""
+    say_en: str = ""
     confidence: float | None = None
     latency_ms: int | None = None
     valid: bool = False
@@ -121,7 +121,7 @@ async def run_case(planner: Planner, case: Case, sem: asyncio.Semaphore) -> Outc
             out.error = str(e)
             return out
         out.action, out.element_id = resp.action, resp.element_id
-        out.say_roman, out.confidence, out.latency_ms = resp.say_roman, resp.confidence, resp.latency_ms
+        out.say_en, out.confidence, out.latency_ms = resp.say_en, resp.confidence, resp.latency_ms
         out.step_ok, out.action_ok = matches(case.expected, resp.action, resp.element_id)
         return out
 
@@ -143,11 +143,11 @@ def write_failures(report: Report, out_dir: Path, stamp: str) -> Path | None:
     with path.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["snapshot", "package", "goal_text", "expected", "got_action", "got_element_id",
-                    "say_roman", "confidence", "valid", "retried", "latency_ms", "error"])
+                    "say_en", "confidence", "valid", "retried", "latency_ms", "error"])
         for o in bad:
             r = o.case.request
             w.writerow([o.case.name, r.screen.package, r.goal_text, json.dumps(o.case.expected), o.action,
-                        o.element_id, o.say_roman, o.confidence, o.valid, o.retried, o.latency_ms, o.error or ""])
+                        o.element_id, o.say_en, o.confidence, o.valid, o.retried, o.latency_ms, o.error or ""])
     return path
 
 

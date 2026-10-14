@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'channel/rehnuma_channel.dart';
+import 'l10n/strings.dart';
 import 'screens/home_screen.dart';
 import 'screens/metrics_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -35,7 +36,7 @@ class RehnumaApp extends StatelessWidget {
       onSurface: const Color(0xFF111111),
     );
     return MaterialApp(
-      title: 'Rehnuma',
+      title: S.appName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: scheme,
@@ -47,6 +48,13 @@ class RehnumaApp extends StatelessWidget {
           titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         listTileTheme: const ListTileThemeData(minVerticalPadding: 14),
+      ),
+      // English is left-to-right; Urdu flips the whole app to right-to-left.
+      builder: (context, child) => ValueListenableBuilder<String>(
+        valueListenable: Lang.code,
+        builder: (context, _, _) => LangScope(
+          child: Directionality(textDirection: Lang.direction, child: child!),
+        ),
       ),
       home: const _StartGate(),
       routes: {
@@ -79,6 +87,7 @@ class _StartGateState extends State<_StartGate> {
     var target = Routes.home;
     try {
       final config = await RehnumaChannel.getConfig();
+      Lang.set(config['language'] as String?);
       if (config['onboarded'] != true) {
         target = Routes.onboarding;
       } else if (!(await RehnumaChannel.getPermissions()).allGranted) {

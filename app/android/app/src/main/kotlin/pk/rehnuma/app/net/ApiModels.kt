@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import pk.rehnuma.app.screen.Masking
 import pk.rehnuma.app.screen.ScreenElement
 import pk.rehnuma.app.screen.ScreenSnapshot
+import pk.rehnuma.app.voice.Line
 
 /**
  * JSON shapes of `/v1/plan` (SPEC 6.2, 6.3). Also used for debug snapshot files (SPEC 11).
@@ -47,13 +48,13 @@ data class ApiScreen(
 @Serializable
 data class HistoryItem(
     val step: Int,
-    @SerialName("instruction_roman") val instructionRoman: String,
+    val instruction: String,
     @SerialName("target_label") val targetLabel: String? = null,
     val outcome: String, // "done" | "deviated" | "skipped"
 )
 
 @Serializable
-data class Prefs(val caption: String = "roman")
+data class Prefs(val language: String = "en")
 
 @Serializable
 data class PlanRequest(
@@ -70,8 +71,8 @@ data class PlanResponse(
     val action: String,
     @SerialName("element_id") val elementId: Int? = null,
     @SerialName("scroll_direction") val scrollDirection: String? = null,
-    @SerialName("say_urdu") val sayUrdu: String = "",
-    @SerialName("say_roman") val sayRoman: String = "",
+    @SerialName("say_en") val sayEn: String = "",
+    @SerialName("say_ur") val sayUr: String = "",
     @SerialName("goal_key") val goalKey: String? = null,
     val confidence: Double = 0.0,
     val reason: String? = null,
@@ -89,17 +90,18 @@ data class PlanResponse(
         const val CANT_HELP = "cant_help"
         val NEEDS_ELEMENT = setOf(TAP, TYPE, SCROLL, DRAG)
     }
+
+    val line: Line get() = Line(sayEn, sayUr)
 }
 
 @Serializable
 data class SttResponse(
-    @SerialName("text_urdu") val textUrdu: String? = null,
-    @SerialName("text_roman") val textRoman: String? = null,
+    val text: String? = null,
     @SerialName("latency_ms") val latencyMs: Long? = null,
 )
 
 @Serializable
-data class TtsRequest(val text: String)
+data class TtsRequest(val text: String, val language: String = "ur")
 
 /** One acceptable answer for an evaluation snapshot (filled in by the team, SPEC 11). */
 @Serializable

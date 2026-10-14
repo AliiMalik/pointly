@@ -6,14 +6,14 @@ void main() {
   test('RehnumaState parses the EventChannel map', () {
     final s = RehnumaState.fromMap({
       'state': 'POINTING',
-      'goalText': 'WiFi on karna hai',
+      'goalText': 'Turn on WiFi',
       'step': 2,
-      'captionRoman': 'WiFi wala button dabayein',
+      'caption': 'Tap the WiFi switch',
     });
     expect(s.state, 'POINTING');
-    expect(s.goalText, 'WiFi on karna hai');
+    expect(s.goalText, 'Turn on WiFi');
     expect(s.step, 2);
-    expect(s.captionRoman, 'WiFi wala button dabayein');
+    expect(s.caption, 'Tap the WiFi switch');
     expect(s.error, isNull);
   });
 
@@ -22,12 +22,12 @@ void main() {
   });
 
   test('five quick tasks from SPEC 8.4', () {
-    expect(S.quickTasks.map((t) => t.goal), [
-      'WhatsApp pe photo bhejni hai',
-      'Phone ke likhai bari karni hai',
-      'WiFi on karna hai',
-      'Kisi ko call karni hai',
-      'Mobile load karna hai',
+    expect(S.quickTasks.map((t) => t.en), [
+      'Send a photo on WhatsApp',
+      'Make the text on my phone bigger',
+      'Turn on WiFi',
+      'Call someone',
+      'Top up my mobile balance',
     ]);
   });
 
@@ -37,6 +37,28 @@ void main() {
       'POINTING', 'WAITING_FOR_USER', 'ASKING', 'COMPLETED', 'ERROR',
     ]) {
       expect(S.stateLabel(state).en, isNot(state), reason: state);
+    }
+  });
+
+  test('English is the default; Urdu is picked only on request', () {
+    Lang.set(null);
+    expect(S.homeStart.text, 'Start Pointly');
+    Lang.set('ur');
+    expect(S.homeStart.text, 'پوائنٹلی چالو کریں');
+    Lang.set('something else');
+    expect(Lang.isUrdu, isFalse);
+  });
+
+  test('English strings contain no Urdu script', () {
+    final urduScript = RegExp(r'[\u0600-\u06FF]');
+    final all = <Bi>[
+      S.onb1Title, S.onb1Body, S.onb2Title, S.promise1, S.promise2, S.promise3, S.onb3Title, S.onb3Body,
+      S.homeStart, S.homeStop, S.homeQuickTasks, S.homeServiceOff, S.setTitle, S.setLanguage, S.permTitle,
+      ...S.quickTasks,
+    ];
+    for (final b in all) {
+      expect(urduScript.hasMatch(b.en), isFalse, reason: b.en);
+      expect(urduScript.hasMatch(b.ur), isTrue, reason: b.ur);
     }
   });
 }

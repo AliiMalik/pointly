@@ -1,8 +1,25 @@
 [
-  {"goal": "likhai", "title": "Settings", "action": "tap", "label": "Display & touch",
-   "say_roman": "Display and touch wala option dabayein", "say_urdu": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں", "goal_key": "settings_font_size"},
-  {"goal": "likhai", "title": "Display & touch", "action": "tap", "label": "Display size & text",
-   "say_roman": "Display size and text dabayein, phir likhai bari karein", "say_urdu": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں", "goal_key": "settings_font_size"},
-  {"goal": "likhai", "title": "Display size & text", "action": "done",
-   "say_roman": "Ab plus wala button khud dabayein", "say_urdu": "اب پلس والا بٹن خود دبائیں", "goal_key": "settings_font_size"}
+  {
+    "goal": "likhai",
+    "title": "Settings",
+    "action": "tap",
+    "label": "Display & touch",
+    "goal_key": "settings_font_size",
+    "say_ur": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں"
+  },
+  {
+    "goal": "likhai",
+    "title": "Display & touch",
+    "action": "tap",
+    "label": "Display size & text",
+    "goal_key": "settings_font_size",
+    "say_ur": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں"
+  },
+  {
+    "goal": "likhai",
+    "title": "Display size & text",
+    "action": "done",
+    "goal_key": "settings_font_size",
+    "say_ur": "اب پلس والا بٹن خود دبائیں"
+  }
 ]

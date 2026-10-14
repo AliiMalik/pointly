@@ -24,7 +24,7 @@ class FakeCore {
     'appKey': 'change-me',
     'voiceIn': 'device',
     'voiceOut': 'device',
-    'caption': 'roman',
+    'language': 'en',
     'talkMode': 'hold',
     'demoMode': false,
     'debugBoxes': false,
@@ -80,6 +80,7 @@ void main() {
   setUp(() {
     core = FakeCore();
     RehnumaChannel.resetForTest();
+    Lang.set('en');
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(control, core.handle);
     messenger.setMockStreamHandler(
@@ -97,6 +98,7 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => LangScope(child: child!),
       home: home,
       routes: {
         Routes.onboarding: (_) => const OnboardingScreen(),
@@ -149,13 +151,25 @@ void main() {
   });
 
   group('onboarding', () {
+    testWidgets('choosing Urdu on the first page switches the app and saves it', (tester) async {
+      await pump(tester, const OnboardingScreen());
+      await tester.tap(find.text(S.setUrdu.ur));
+      await tester.pumpAndSettle();
+      expect(core.config['language'], 'ur');
+      expect(find.text(S.onb1Title.ur), findsOneWidget);
+      expect(find.text(S.onb1Title.en), findsNothing);
+      await tester.tap(find.text(S.setEnglish.en));
+      await tester.pumpAndSettle();
+      expect(find.text(S.onb1Title.en), findsOneWidget);
+    });
+
     testWidgets('three pages with the three promises, then permissions', (tester) async {
       await pump(tester, const OnboardingScreen());
       expect(find.text(S.onb1Title.en), findsOneWidget);
       await tester.tap(find.text(S.next.en));
       await tester.pumpAndSettle();
-      expect(find.text(S.promise1.ur), findsOneWidget);
-      expect(find.text(S.promise3.ur), findsOneWidget);
+      expect(find.text(S.promise1.en), findsOneWidget);
+      expect(find.text(S.promise3.en), findsOneWidget);
       await tester.tap(find.text(S.next.en));
       await tester.pumpAndSettle();
       await tester.tap(find.text(S.start.en));
@@ -203,11 +217,11 @@ void main() {
       expect(core.methods, contains('hideBubble'));
     });
 
-    testWidgets('each quick task sends its Roman Urdu goal', (tester) async {
+    testWidgets('each quick task sends its English goal', (tester) async {
       await pump(tester, const HomeScreen());
       for (final task in S.quickTasks) {
-        await tapText(tester, task.ur);
-        expect(core.last('startQuickTask').arguments, {'goal': task.goal});
+        await tapText(tester, task.en);
+        expect(core.last('startQuickTask').arguments, {'goal': task.en});
       }
       expect(core.calls.where((c) => c.method == 'startQuickTask').length, 5);
     });
@@ -215,7 +229,7 @@ void main() {
     testWidgets('quick task with the service off goes to permissions', (tester) async {
       core.serviceOn = false;
       await pump(tester, const HomeScreen());
-      await tapText(tester, S.quickTasks.first.ur);
+      await tapText(tester, S.quickTasks.first.en);
       expect(core.methods, isNot(contains('startQuickTask')));
       expect(find.byType(PermissionsScreen), findsOneWidget);
     });
@@ -228,18 +242,18 @@ void main() {
 
       states.add(RehnumaState.fromMap({
         'state': 'WAITING_FOR_USER',
-        'goalText': 'WiFi on karna hai',
+        'goalText': 'Turn on WiFi',
         'step': 2,
-        'captionRoman': 'Internet wala option dabayein',
+        'caption': 'Tap Network & internet',
       }));
       await tester.pumpAndSettle();
       expect(find.text('${S.homeState.en}: Waiting for you'), findsOneWidget);
-      expect(find.text('“WiFi on karna hai”'), findsOneWidget);
-      expect(find.text('Internet wala option dabayein'), findsOneWidget);
+      expect(find.text('“Turn on WiFi”'), findsOneWidget);
+      expect(find.text('Tap Network & internet'), findsOneWidget);
 
       states.add(RehnumaState.fromMap({'state': 'ERROR', 'error': 'NETWORK: timeout'}));
       await tester.pumpAndSettle();
-      expect(find.text('${S.homeState.en}: Error'), findsOneWidget);
+      expect(find.text('${S.homeState.en}: Something went wrong'), findsOneWidget);
       expect(find.text('NETWORK: timeout'), findsOneWidget);
     });
   });
@@ -247,11 +261,9 @@ void main() {
   group('settings', () {
     testWidgets('choices are saved straight away', (tester) async {
       await pump(tester, const SettingsScreen());
-      await tapText(tester, 'کلاؤڈ\nCloud');
+      await tapText(tester, S.setCloud.en);
       expect(core.config['voiceIn'], 'cloud');
-      await tapText(tester, '${S.setUrdu.ur}\n${S.setUrdu.en}');
-      expect(core.config['caption'], 'urdu');
-      await tapText(tester, '${S.setTap.ur}\n${S.setTap.en}');
+      await tapText(tester, S.setTap.en);
       expect(core.config['talkMode'], 'tap');
       await tapText(tester, S.setDemoMode.en);
       expect(core.config['demoMode'], true);
@@ -259,6 +271,16 @@ void main() {
       expect(core.last('setDebugBoxes').arguments, {'enabled': true});
       await tapText(tester, S.setResetLearning.en);
       expect(core.methods, contains('resetLearning'));
+    });
+
+    testWidgets('language choice switches the whole screen to Urdu', (tester) async {
+      await pump(tester, const SettingsScreen());
+      expect(find.text(S.setTitle.en), findsOneWidget);
+      await tapText(tester, S.setUrdu.ur);
+      expect(core.config['language'], 'ur');
+      expect(find.text(S.setTitle.ur), findsWidgets);
+      expect(find.text(S.setVoiceIn.ur), findsOneWidget);
+      expect(find.text(S.setVoiceIn.en), findsNothing);
     });
 
     testWidgets('check server saves URL and key first, then reports', (tester) async {

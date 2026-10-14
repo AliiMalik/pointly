@@ -12,9 +12,9 @@
   "history": [
     {
       "step": 1,
-      "instruction_roman": "Phone ka hara icon dabayein",
       "target_label": "Phone",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Phone ka hara icon dabayein"
     }
   ],
   "screen": {

@@ -22,9 +22,9 @@ import java.security.MessageDigest
 import java.util.Locale
 
 /**
- * Urdu voice (SPEC 5.11). Device `TextToSpeech` with `ur-PK` when such a voice is installed,
- * otherwise `/v1/tts` audio, cached by SHA-256 of the text. Phrases play one after another.
- * If neither works, Rehnuma stays silent and the captions carry the instruction.
+ * Voice (SPEC 5.11) in the chosen language. Device `TextToSpeech` (English, or `ur-PK` when such a
+ * voice is installed), otherwise `/v1/tts` audio, cached by SHA-256 of language and text. Phrases
+ * play one after another. If neither works, Pointly stays silent and the captions carry the instruction.
  */
 class SpeechOutput(
     private val context: Context,
@@ -33,7 +33,7 @@ class SpeechOutput(
     private val scope: CoroutineScope,
 ) : SessionVoice {
 
-    private class Item(val id: String, val urdu: String, val onDone: () -> Unit)
+    private class Item(val id: String, val text: String, val language: String, val onDone: () -> Unit)
 
     private val main = Handler(Looper.getMainLooper())
     private val queue = ArrayDeque<Item>()
@@ -44,10 +44,14 @@ class SpeechOutput(
     private var tts: TextToSpeech? = null
     private var cloudFailedAt = 0L
 
-    /** True once the device engine reported an installed Urdu voice. */
+    /** Installed device voices, found when the engine starts. */
     @Volatile
     var deviceUrdu = false
         private set
+    @Volatile
+    var deviceEnglish = false
+        private set
+    private var urduVoice: android.speech.tts.Voice? = null
 
     /** Called when audio actually starts (for the `ttsStartMs` metric). */
     var onSpeakStart: (() -> Unit)? = null
@@ -74,9 +78,10 @@ class SpeechOutput(
             it.locale.language == "ur" && TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features
         }
         if (available && voice != null) {
-            t.voice = voice
+            urduVoice = voice
             deviceUrdu = true
         }
+        deviceEnglish = t.isLanguageAvailable(Locale.US) >= TextToSpeech.LANG_AVAILABLE
         t.setSpeechRate(SPEECH_RATE)
         t.setAudioAttributes(attributes)
         t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -97,14 +102,15 @@ class SpeechOutput(
                 main.post { finish(utteranceId) }
             }
         })
-        Log.i(TAG, "device Urdu voice: $deviceUrdu")
+        Log.i(TAG, "device voices: Urdu $deviceUrdu, English $deviceEnglish")
     }
 
-    private val useDevice: Boolean
-        get() = deviceUrdu && config().voiceOut == AppConfig.VOICE_DEVICE
+    private fun useDevice(language: String): Boolean =
+        config().voiceOut == AppConfig.VOICE_DEVICE && if (language == AppConfig.LANG_UR) deviceUrdu else deviceEnglish
 
-    override fun speak(urdu: String, roman: String, onDone: () -> Unit) {
-        queue.addLast(Item("u${++counter}", urdu, onDone))
+    override fun speak(line: Line, onDone: () -> Unit) {
+        val language = config().language
+        queue.addLast(Item("u${++counter}", line.pick(language), language, onDone))
         if (current == null) next()
     }
 
@@ -124,10 +130,11 @@ class SpeechOutput(
 
     /** Downloads the fixed phrases ahead of time when the cloud voice will be used (SPEC 5.11). */
     fun prewarm() {
-        if (useDevice) return
+        val language = config().language
+        if (useDevice(language)) return
         scope.launch {
             for (p in Phrase.entries) {
-                if (cloudAudio(p.urdu) == null) break
+                if (cloudAudio(p.line.pick(language), language) == null) break
             }
         }
     }
@@ -136,13 +143,15 @@ class SpeechOutput(
         val item = queue.removeFirstOrNull()
         current = item
         if (item == null) return
-        if (useDevice) {
-            val r = tts?.speak(item.urdu, TextToSpeech.QUEUE_FLUSH, null, item.id) ?: TextToSpeech.ERROR
+        val t = tts
+        if (t != null && useDevice(item.language)) {
+            if (item.language == AppConfig.LANG_UR) urduVoice?.let { t.voice = it } else t.language = Locale.US
+            val r = t.speak(item.text, TextToSpeech.QUEUE_FLUSH, null, item.id)
             if (r != TextToSpeech.SUCCESS) finish(item.id)
             return
         }
         fetchJob = scope.launch {
-            val file = cloudAudio(item.urdu)
+            val file = cloudAudio(item.text, item.language)
             if (current !== item) return@launch
             if (file == null) finish(item.id) else play(file, item)
         }
@@ -188,11 +197,11 @@ class SpeechOutput(
     }
 
     /** Cached WAV for [text], fetching it from `/v1/tts` if needed. Null when the cloud voice is unavailable. */
-    private suspend fun cloudAudio(text: String): File? {
-        val file = File(cacheDir, sha256(text) + ".wav")
+    private suspend fun cloudAudio(text: String, language: String): File? {
+        val file = File(cacheDir, sha256("$language:$text") + ".wav")
         if (file.exists() && file.length() > 44) return file
         if (SystemClock.elapsedRealtime() - cloudFailedAt < CLOUD_BACKOFF_MS) return null
-        return when (val r = client.tts(text)) {
+        return when (val r = client.tts(text, language)) {
             is PlannerClient.Result.Ok -> withContext(Dispatchers.IO) {
                 val tmp = File(cacheDir, file.name + ".tmp")
                 tmp.writeBytes(r.value)

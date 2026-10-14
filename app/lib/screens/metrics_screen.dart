@@ -38,7 +38,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
       await RehnumaChannel.saveSnapshot();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${S.metSnapshotHint.ur}\n${S.metSnapshotHint.en}')),
+        SnackBar(content: Text(S.metSnapshotHint.text)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -62,9 +62,9 @@ class _MetricsScreenState extends State<MetricsScreen> {
     ];
     return Scaffold(
       appBar: AppBar(
-        title: Text('${S.metTitle.ur} · ${S.metTitle.en}'),
+        title: Text(S.metTitle.text),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: S.metRefresh.en, onPressed: _load),
+          IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: S.metRefresh.text, onPressed: _load),
         ],
       ),
       body: ListView(

@@ -1,4 +1,4 @@
-"""Rehnuma backend: `/v1/health`, `/v1/plan`, `/v1/stt`, `/v1/tts` (SPEC 6.1).
+"""Pointly backend (code name rehnuma): `/v1/health`, `/v1/plan`, `/v1/stt`, `/v1/tts` (SPEC 6.1).
 
 Run locally: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
 """
@@ -64,7 +64,7 @@ def create_app(
     settings = settings or get_settings()
     provider = provider or build_provider(settings)
     tts = CachedTts(tts_engine or build_tts(settings), settings.tts_cache_dir, key_extra=f"{settings.tts_model}|{settings.tts_voice}")
-    app = FastAPI(title="Rehnuma backend", version="1.0.0")
+    app = FastAPI(title="Pointly backend", version="1.1.0")
     app.state.settings = settings
     app.state.provider = provider
     app.state.planner = Planner(
@@ -102,7 +102,7 @@ def create_app(
     @app.post("/v1/tts", dependencies=[Depends(require_key)])
     async def text_to_speech(req: TtsRequest) -> Response:
         try:
-            audio = await run_in_threadpool(tts.get, req.text.strip())
+            audio = await run_in_threadpool(tts.get, req.text.strip(), req.language)
         except TtsError as e:
             # The phone falls back to its own voice or captions only (SPEC 6.7).
             raise HTTPException(status_code=503, detail=str(e)) from e

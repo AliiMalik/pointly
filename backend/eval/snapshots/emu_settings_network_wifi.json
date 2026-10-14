@@ -9,9 +9,9 @@
   "history": [
     {
       "step": 1,
-      "instruction_roman": "Network and internet dabayein",
       "target_label": "Network & internet · Mobile, Wi‑Fi, hotspot",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Network and internet dabayein"
     }
   ],
   "screen": {

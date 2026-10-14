@@ -1,8 +1,8 @@
-# Rehnuma
+# Pointly
 
-Android helper for first-time and low-literacy smartphone users. Hold the green bubble, say in Urdu what you want to do, and Rehnuma points with an animated hand at the one thing to press next, says it in Urdu, and waits for **you** to tap. It never taps, types or opens apps for you, never takes screenshots, and stops looking at PIN/password screens.
+Android helper for first-time and low-literacy smartphone users. Hold the green bubble, say what you want to do, and Pointly points with an animated hand at the one thing to press next, says it out loud, and waits for **you** to tap. English by default; Urdu (Urdu script and voice) is one tap away in onboarding or Settings. It never taps, types or opens apps for you, never takes screenshots, and stops looking at PIN/password screens.
 
-Built from [`docs/SPEC.md`](docs/SPEC.md); every judgement call is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+"Pointly" is the display name and may change; code, package (`pk.rehnuma.app`), channels and headers keep the original working name *Rehnuma*. Built from [`docs/SPEC.md`](docs/SPEC.md); every judgement call is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ```
 rehnuma/

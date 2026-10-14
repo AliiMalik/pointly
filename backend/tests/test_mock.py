@@ -19,7 +19,7 @@ SCREEN = {
 def script(tmp_path, monkeypatch):
     rules = [
         {"goal": "user answer", "title": "Settings", "label": "Network", "goal_key": "wifi_on"},
-        {"goal": "wifi", "title": "Settings", "action": "ask", "say_roman": "Kaun sa?"},
+        {"goal": "wifi", "title": "Settings", "action": "ask", "say_en": "Which one?"},
     ]
     path = tmp_path / "rules.json"
     path.write_text(json.dumps(rules), encoding="utf-8")

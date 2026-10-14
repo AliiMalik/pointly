@@ -42,8 +42,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     return Scaffold(
-      appBar: AppBar(title: Text('${S.permTitle.ur} · ${S.permTitle.en}')),
+      appBar: AppBar(title: Text(S.permTitle.text)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

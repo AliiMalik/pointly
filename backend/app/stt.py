@@ -58,7 +58,6 @@ async def transcribe(provider: LLMProvider, data: bytes, content_type: str | Non
         raise
     latency_ms = int((time.monotonic() - start) * 1000)
     return SttResponse(
-        text_urdu=masking.mask(str(result.get("text_urdu") or "").strip()),
-        text_roman=masking.mask(str(result.get("text_roman") or "").strip()),
+        text=masking.mask(str(result.get("text") or "").strip()),
         latency_ms=latency_ms,
     )

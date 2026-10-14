@@ -5,7 +5,7 @@ import '../l10n/strings.dart';
 import '../main.dart';
 import '../widgets/bilingual.dart';
 
-/// Three pages: what Rehnuma does, the three promises, start (SPEC 10 item 1).
+/// Three pages: language and what Pointly does, the three promises, start (SPEC 10 item 1).
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -35,6 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     final green = Theme.of(context).colorScheme.primary;
     return Scaffold(
       body: SafeArea(
@@ -48,23 +49,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _Page(
                     icon: Icons.touch_app_rounded,
                     title: S.onb1Title,
-                    child: BiText(S.onb1Body, size: 20, center: true),
+                    child: Column(
+                      children: [
+                        BiText(S.onb1Body, size: 20, center: true, bold: false),
+                        const SizedBox(height: 32),
+                        BiText(S.onbLanguage, size: 18, center: true),
+                        const SizedBox(height: 8),
+                        SegmentedButton<String>(
+                          style: const ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(0, 56))),
+                          segments: [
+                            ButtonSegment(value: Lang.en, label: Text(S.setEnglish.en, style: const TextStyle(fontSize: 18))),
+                            ButtonSegment(value: Lang.ur, label: Text(S.setUrdu.ur, style: const TextStyle(fontSize: 18))),
+                          ],
+                          selected: {Lang.code.value},
+                          onSelectionChanged: (s) {
+                            Lang.set(s.first);
+                            RehnumaChannel.setConfig({'language': s.first});
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                   _Page(
                     icon: Icons.verified_user_rounded,
                     title: S.onb2Title,
                     child: Column(
                       children: const [
-                        _Promise(S.promise1, S.promise1En, Icons.back_hand_rounded),
-                        _Promise(S.promise2, S.promise2En, Icons.visibility_rounded),
-                        _Promise(S.promise3, S.promise3En, Icons.lock_rounded),
+                        _Promise(S.promise1, Icons.back_hand_rounded),
+                        _Promise(S.promise2, Icons.visibility_rounded),
+                        _Promise(S.promise3, Icons.lock_rounded),
                       ],
                     ),
                   ),
                   _Page(
                     icon: Icons.school_rounded,
                     title: S.onb3Title,
-                    child: BiText(S.onb3Body, size: 20, center: true),
+                    child: BiText(S.onb3Body, size: 20, center: true, bold: false),
                   ),
                 ],
               ),
@@ -124,10 +144,9 @@ class _Page extends StatelessWidget {
 }
 
 class _Promise extends StatelessWidget {
-  const _Promise(this.text, this.english, this.icon);
+  const _Promise(this.text, this.icon);
 
   final Bi text;
-  final String english;
   final IconData icon;
 
   @override
@@ -140,7 +159,7 @@ class _Promise extends StatelessWidget {
           children: [
             Icon(icon, size: 36, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 16),
-            Expanded(child: BiText(Bi(text.ur, '${text.en} — $english'), size: 20)),
+            Expanded(child: BiText(text, size: 20)),
           ],
         ),
       ),

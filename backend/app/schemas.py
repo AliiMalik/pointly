@@ -52,7 +52,7 @@ class HistoryItem(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     step: int
-    instruction_roman: str = ""
+    instruction: str = ""  # the English instruction shown at that step
     target_label: str | None = None
     outcome: Literal["done", "deviated", "skipped"] = "done"
 
@@ -60,7 +60,7 @@ class HistoryItem(BaseModel):
 class Prefs(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    caption: Literal["roman", "urdu"] = "roman"
+    language: Literal["en", "ur"] = "en"
 
 
 class PlanRequest(BaseModel):
@@ -88,8 +88,8 @@ class LLMPlan(BaseModel):
     action: Action
     element_id: int | None = None
     scroll_direction: ScrollDirection | None = None
-    say_urdu: str
-    say_roman: str
+    say_en: str
+    say_ur: str
     goal_key: str
     confidence: float
     reason: str
@@ -100,10 +100,10 @@ class PlanResponse(LLMPlan):
 
 
 class SttResponse(BaseModel):
-    text_urdu: str
-    text_roman: str
+    text: str  # as spoken: English in English letters, Urdu in Urdu script
     latency_ms: int
 
 
 class TtsRequest(BaseModel):
     text: str = Field(min_length=1, max_length=500)
+    language: Literal["en", "ur"] = "ur"

@@ -59,8 +59,8 @@ class LearningAndCacheTest {
         signature = chats.signature,
         action = "tap",
         target = PlanCache.targetOf(chats.element(id)),
-        sayUrdu = "سارہ کے نام پر دبائیں",
-        sayRoman = "Sara ke naam pe dabayein",
+        sayUr = "سارہ کے نام پر دبائیں",
+        sayEn = "Tap Sara's name",
     )
 
     @Test fun cacheFindsTargetBySharedIdAndLabelHash() {

@@ -20,6 +20,7 @@ import pk.rehnuma.app.screen.ScreenElement
 import pk.rehnuma.app.screen.ScreenSnapshot
 import pk.rehnuma.app.screen.TargetSignature
 import pk.rehnuma.app.screen.sameControlNear
+import pk.rehnuma.app.voice.Line
 import pk.rehnuma.app.voice.Phrase
 import java.util.UUID
 
@@ -92,7 +93,7 @@ class GuidanceSession(
     private var hesitationJob: Job? = null
     private var step: Step? = null
     private var dirty = false
-    private var lastSaid: Pair<String, String>? = null
+    private var lastSaid: Line? = null
     private var yourTurnSaid = false
     private var settledAt = 0L
     private var beforeListening: SessionState = SessionState.IDLE
@@ -136,7 +137,7 @@ class GuidanceSession(
         lastSaid = null
         yourTurnSaid = false
         // SPEC 4 step 3: "Ek second, dekh rahi hoon" while the screen is read and planned.
-        ui.caption(caption(Phrase.THINKING.urdu, Phrase.THINKING.roman))
+        ui.caption(caption(Phrase.THINKING.line))
         say(Phrase.THINKING)
         runFlow { planFromScreen(fromNow = false) }
     }
@@ -150,7 +151,7 @@ class GuidanceSession(
         ui.clear()
         setState(SessionState.LISTENING)
         ui.bubble(BubbleState.LISTENING, showClose = true)
-        ui.caption(caption(Phrase.ASK_GOAL.urdu, Phrase.ASK_GOAL.roman))
+        ui.caption(caption(Phrase.ASK_GOAL.line))
     }
 
     /** Words recognized so far, shown while listening (SPEC 5.10). */
@@ -170,7 +171,7 @@ class GuidanceSession(
         if (state != SessionState.LISTENING && state != SessionState.TRANSCRIBING) return
         val previous = beforeListening
         if (text.isNullOrBlank()) {
-            ui.caption(caption(Phrase.DIDNT_HEAR.urdu, Phrase.DIDNT_HEAR.roman))
+            ui.caption(caption(Phrase.DIDNT_HEAR.line))
             say(Phrase.DIDNT_HEAR)
             when {
                 previous == SessionState.ASKING -> {
@@ -202,7 +203,7 @@ class GuidanceSession(
                 val s = step ?: return
                 showFull(s, speak = true)
             }
-            SessionState.ASKING, SessionState.SENSITIVE_PAUSE -> lastSaid?.let { (u, r) -> say(u, r) }
+            SessionState.ASKING, SessionState.SENSITIVE_PAUSE -> lastSaid?.let { say(it) }
             else -> Unit
         }
     }
@@ -213,7 +214,7 @@ class GuidanceSession(
         if (s.speechStartedAt == 0L && s.shownAt != 0L) s.speechStartedAt = clock()
     }
 
-    /** Bubble "×" or notification "Band karein" (rule 7): stop everything now. */
+    /** Bubble "×" or notification "Stop" (rule 7): stop everything now. */
     fun cancel() {
         abandonStep("cancelled")
         cancelJobs()
@@ -307,7 +308,7 @@ class GuidanceSession(
                 follow(s, snapshot)
                 if (!s.wrongTapSaid) {
                     s.wrongTapSaid = true
-                    ui.flashCaption(caption(Phrase.WRONG_TAP.urdu, Phrase.WRONG_TAP.roman))
+                    ui.flashCaption(caption(Phrase.WRONG_TAP.line))
                     say(Phrase.WRONG_TAP)
                 }
             }
@@ -358,15 +359,15 @@ class GuidanceSession(
                     action = s.plan.action,
                     target = PlanCache.targetOf(s.target),
                     scrollDirection = s.plan.scrollDirection,
-                    sayUrdu = s.plan.sayUrdu,
-                    sayRoman = s.plan.sayRoman,
+                    sayEn = s.plan.sayEn,
+                    sayUr = s.plan.sayUr,
                 )
             }
         }
         ui.clear()
         voice.stop() // the old instruction is no longer true
         phrase?.let {
-            ui.caption(caption(it.urdu, it.roman)) // readable without sound too
+            ui.caption(caption(it.line)) // readable without sound too
             say(it)
         }
         runFlow {
@@ -384,7 +385,7 @@ class GuidanceSession(
     private fun addHistory(s: Step, outcome: String) {
         _history += HistoryItem(
             step = _history.size + 1,
-            instructionRoman = s.plan.sayRoman,
+            instruction = s.plan.sayEn,
             targetLabel = s.target?.displayLabel,
             outcome = outcome,
         )
@@ -412,7 +413,7 @@ class GuidanceSession(
             snapshot = screen.read()
         }
         if (snapshot == null) {
-            fail("اسکرین نہیں پڑھ سکی۔ بلبلہ دبا کر دوبارہ کوشش کریں۔", "Screen nahi parh saki. Bubble daba kar dobara koshish karein.", "no readable window")
+            fail(Line("I couldn't read the screen. Tap the bubble to try again.", "اسکرین نہیں پڑھ سکی۔ بلبلہ دبا کر دوبارہ کوشش کریں۔"), "no readable window")
             return
         }
         planFrom(snapshot)
@@ -423,8 +424,8 @@ class GuidanceSession(
             // Rehnuma's own screen is in front (e.g. a quick task from Home): guide the user out first.
             val p = PlanResponse(
                 action = PlanResponse.HOME,
-                sayUrdu = "گھر والا بٹن دبائیں یا نیچے سے اوپر سوائپ کریں",
-                sayRoman = "Home button dabayein ya neeche se upar swipe karein",
+                sayEn = "Press the Home button or swipe up from the bottom",
+                sayUr = "گھر والا بٹن دبائیں یا نیچے سے اوپر سوائپ کریں",
                 goalKey = goalKey,
             )
             startStep(p, null, snapshot, fromCache = false, plannerMs = null, level = GuidanceLevel.FULL)
@@ -450,8 +451,8 @@ class GuidanceSession(
                     action = hit.step.action,
                     elementId = hit.element?.id,
                     scrollDirection = hit.step.scrollDirection,
-                    sayUrdu = hit.step.sayUrdu,
-                    sayRoman = hit.step.sayRoman,
+                    sayEn = hit.step.sayEn,
+                    sayUr = hit.step.sayUr,
                     goalKey = gk,
                     confidence = 1.0,
                 )
@@ -470,19 +471,19 @@ class GuidanceSession(
             stepIndex = stepIndex,
             history = _history.takeLast(MAX_HISTORY),
             screen = snapshot.toApi(),
-            prefs = Prefs(config().caption),
+            prefs = Prefs(config().language),
         )
         val result = planner.plan(request) {
-            ui.caption(caption(Phrase.NETWORK_SLOW.urdu, Phrase.NETWORK_SLOW.roman))
-            voice.speak(Phrase.NETWORK_SLOW.urdu, Phrase.NETWORK_SLOW.roman)
+            ui.caption(caption(Phrase.NETWORK_SLOW.line))
+            voice.speak(Phrase.NETWORK_SLOW.line)
         }
         when (result) {
             is PlannerClient.Result.Failed -> {
                 stepIndex-- // the retry asks for the same step again
                 val detail = "${result.failure}: ${result.message}"
                 when (result.failure) {
-                    PlannerClient.Failure.AUTH -> fail("ایپ کی غلط ہے۔ سیٹنگز دیکھیں۔", "App key ghalat hai. Settings dekhein.", detail)
-                    else -> fail("انٹرنیٹ کا مسئلہ ہے۔ دوبارہ کوشش کے لیے بلبلہ دبائیں۔", "Internet ka masla hai. Dobara koshish ke liye bubble dabayein.", detail)
+                    PlannerClient.Failure.AUTH -> fail(Line("The app key is wrong. Please check Settings.", "ایپ کی غلط ہے۔ سیٹنگز دیکھیں۔"), detail)
+                    else -> fail(Line("There is an internet problem. Tap the bubble to try again.", "انٹرنیٹ کا مسئلہ ہے۔ دوبارہ کوشش کے لیے بلبلہ دبائیں۔"), detail)
                 }
             }
             is PlannerClient.Result.Ok -> {
@@ -524,10 +525,10 @@ class GuidanceSession(
                 startStep(plan, null, snapshot, fromCache, plannerMs, levelFor(plan, null, snapshot))
             PlanResponse.ASK -> {
                 reportTerminal(plan, snapshot, fromCache, plannerMs, "asked")
-                setState(SessionState.ASKING, plan.sayRoman)
+                setState(SessionState.ASKING, plan.line)
                 ui.bubble(BubbleState.IDLE, showClose = true)
-                ui.caption(caption(plan.sayUrdu, plan.sayRoman))
-                say(plan.sayUrdu, plan.sayRoman)
+                ui.caption(caption(plan.line))
+                say(plan.line)
             }
             PlanResponse.DONE -> {
                 reportTerminal(plan, snapshot, fromCache, plannerMs, "completed")
@@ -560,17 +561,16 @@ class GuidanceSession(
             fromCache = fromCache, plannerMs = plannerMs, settledAt = settledAt,
         )
         step = s
-        setState(SessionState.POINTING, plan.sayRoman)
+        setState(SessionState.POINTING, plan.line)
         s.shownAt = clock()
         when (level) {
             GuidanceLevel.FULL -> showFull(s, speak = true)
             GuidanceLevel.HINT -> {
                 // Short spoken hint and caption; the hand only if the user hesitates (SPEC 9.1).
-                val urdu = firstClause(plan.sayUrdu)
-                val roman = firstClause(plan.sayRoman)
+                val hint = Line(firstClause(plan.sayEn), firstClause(plan.sayUr))
                 ui.bubble(BubbleState.SPEAKING, showClose = true)
-                ui.point(pointerTarget(s), caption(urdu, roman), withHand = false) { arrived(s) }
-                say(urdu, roman) { if (step === s) ui.bubble(BubbleState.IDLE, showClose = true) }
+                ui.point(pointerTarget(s), caption(hint), withHand = false) { arrived(s) }
+                say(hint) { if (step === s) ui.bubble(BubbleState.IDLE, showClose = true) }
                 revealAfter(s, HINT_REVEAL_MS)
             }
             GuidanceLevel.SILENT -> {
@@ -578,7 +578,7 @@ class GuidanceSession(
                 ui.point(pointerTarget(s), null, withHand = false) { arrived(s) }
                 if (!yourTurnSaid) {
                     yourTurnSaid = true
-                    ui.flashCaption(caption(Phrase.YOUR_TURN.urdu, Phrase.YOUR_TURN.roman))
+                    ui.flashCaption(caption(Phrase.YOUR_TURN.line))
                     say(Phrase.YOUR_TURN)
                 }
                 revealAfter(s, SILENT_REVEAL_MS)
@@ -589,9 +589,9 @@ class GuidanceSession(
     /** Hand, ring and caption, with the full spoken instruction (FULL level, repeats, hesitation). */
     private fun showFull(s: Step, speak: Boolean) {
         ui.bubble(BubbleState.SPEAKING, showClose = true)
-        ui.point(pointerTarget(s), caption(s.plan.sayUrdu, s.plan.sayRoman), withHand = true) { arrived(s) }
+        ui.point(pointerTarget(s), caption(s.plan.line), withHand = true) { arrived(s) }
         if (speak) {
-            say(s.plan.sayUrdu, s.plan.sayRoman) {
+            say(s.plan.line) {
                 if (step === s) ui.bubble(BubbleState.IDLE, showClose = true)
             }
         } else {
@@ -600,7 +600,7 @@ class GuidanceSession(
     }
 
     private fun arrived(s: Step) {
-        if (step === s && state == SessionState.POINTING) setState(SessionState.WAITING_FOR_USER, s.plan.sayRoman)
+        if (step === s && state == SessionState.POINTING) setState(SessionState.WAITING_FOR_USER, s.plan.line)
     }
 
     private fun revealAfter(s: Step, ms: Long) {
@@ -624,10 +624,10 @@ class GuidanceSession(
         step = null
         hesitationJob?.cancel()
         if (state != SessionState.SENSITIVE_PAUSE) observer.onSensitivePause(sessionId, snapshot.packageName)
-        setState(SessionState.SENSITIVE_PAUSE, Phrase.SENSITIVE_PAUSE.roman)
+        setState(SessionState.SENSITIVE_PAUSE, Phrase.SENSITIVE_PAUSE.line)
         ui.clear()
         ui.bubble(BubbleState.PAUSED, showClose = true)
-        ui.caption(caption(Phrase.SENSITIVE_PAUSE.urdu, Phrase.SENSITIVE_PAUSE.roman))
+        ui.caption(caption(Phrase.SENSITIVE_PAUSE.line))
         say(Phrase.SENSITIVE_PAUSE)
     }
 
@@ -635,26 +635,25 @@ class GuidanceSession(
         step = null
         goalKey?.let { cache.store(it, finishedSteps.toList()) }
         // "done" because the rest is the user's own (PIN, payment): say the planner's sentence.
-        val userFinishes = plan.sayRoman.contains("khud", ignoreCase = true)
-        val urdu = if (userFinishes) plan.sayUrdu else Phrase.DONE.urdu
-        val roman = if (userFinishes) plan.sayRoman else Phrase.DONE.roman
-        setState(SessionState.COMPLETED, roman)
+        val userFinishes = plan.sayEn.contains("yourself", ignoreCase = true) || "خود" in plan.sayUr
+        val line = if (userFinishes) plan.line else Phrase.DONE.line
+        setState(SessionState.COMPLETED, line)
         ui.clear()
         ui.bubble(BubbleState.SPEAKING, showClose = false)
-        ui.caption(caption(urdu, roman))
-        finishAfterSpeech(urdu, roman)
+        ui.caption(caption(line))
+        finishAfterSpeech(line)
     }
 
     private fun endWith(phrase: Phrase) {
         step = null
-        setState(SessionState.COMPLETED, phrase.roman)
+        setState(SessionState.COMPLETED, phrase.line)
         ui.clear()
         ui.bubble(BubbleState.SPEAKING, showClose = false)
-        ui.caption(caption(phrase.urdu, phrase.roman))
-        finishAfterSpeech(phrase.urdu, phrase.roman)
+        ui.caption(caption(phrase.line))
+        finishAfterSpeech(phrase.line)
     }
 
-    private fun finishAfterSpeech(urdu: String, roman: String) {
+    private fun finishAfterSpeech(line: Line) {
         var finished = false
         val finish = {
             if (!finished && state == SessionState.COMPLETED) {
@@ -664,19 +663,19 @@ class GuidanceSession(
                 setState(SessionState.IDLE)
             }
         }
-        say(urdu, roman) { scope.launch { delay(END_LINGER_MS); finish() } }
+        say(line) { scope.launch { delay(END_LINGER_MS); finish() } }
         // Never stay stuck if speech never reports back.
         scope.launch { delay(END_MAX_MS); finish() }
     }
 
     /** Recoverable error (SPEC 5.5): plain words for the user, details only for the app's status line. */
-    private fun fail(urdu: String, roman: String, detail: String) {
+    private fun fail(line: Line, detail: String) {
         step = null
-        setState(SessionState.ERROR, captionRoman = roman, error = detail)
+        setState(SessionState.ERROR, line, error = detail)
         ui.clear()
         ui.bubble(BubbleState.ERROR, showClose = true)
-        ui.caption(caption(urdu, roman))
-        lastSaid = urdu to roman
+        ui.caption(caption(line))
+        lastSaid = line
     }
 
     // ---------------------------------------------------------------- metrics
@@ -715,19 +714,18 @@ class GuidanceSession(
 
     // ---------------------------------------------------------------- helpers
 
-    private fun say(p: Phrase) = say(p.urdu, p.roman)
+    private fun say(p: Phrase) = say(p.line)
 
-    private fun say(urdu: String, roman: String, onDone: () -> Unit = {}) {
-        lastSaid = urdu to roman
-        voice.speak(urdu, roman, onDone)
+    private fun say(line: Line, onDone: () -> Unit = {}) {
+        lastSaid = line
+        voice.speak(line, onDone)
     }
 
-    private fun caption(urdu: String, roman: String) =
-        if (config().caption == AppConfig.CAPTION_URDU) urdu else roman
+    private fun caption(line: Line) = line.pick(config().language)
 
-    private fun setState(s: SessionState, captionRoman: String? = null, error: String? = null) {
+    private fun setState(s: SessionState, line: Line? = null, error: String? = null) {
         state = s
-        ui.emit(s, goalText.takeIf { it.isNotEmpty() }, stepIndex.takeIf { it > 0 }, captionRoman, error)
+        ui.emit(s, goalText.takeIf { it.isNotEmpty() }, stepIndex.takeIf { it > 0 }, line?.let(::caption), error)
     }
 
     private fun cancelJobs() {
@@ -749,7 +747,7 @@ class GuidanceSession(
 
         private val CLAUSE_END = Regex("""[،,؛;.۔!?]""")
 
-        /** "Sara ke naam pe dabayein, phir photo chunein" -> "Sara ke naam pe dabayein" (SPEC 9.1 HINT). */
+        /** "Tap Sara's name, then pick the photo" -> "Tap Sara's name" (SPEC 9.1 HINT). */
         fun firstClause(s: String): String {
             val cut = CLAUSE_END.find(s)?.range?.first ?: return s.trim()
             return s.substring(0, cut).trim().ifEmpty { s.trim() }

@@ -9,9 +9,9 @@
   "history": [
     {
       "step": 1,
-      "instruction_roman": "Yeh hara WhatsApp icon dabayein",
       "target_label": "WhatsApp",
-      "outcome": "done"
+      "outcome": "done",
+      "instruction": "Yeh hara WhatsApp icon dabayein"
     }
   ],
   "screen": {

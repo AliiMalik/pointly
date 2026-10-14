@@ -6,6 +6,7 @@ import pk.rehnuma.app.net.PlannerClient
 import pk.rehnuma.app.overlay.BubbleState
 import pk.rehnuma.app.overlay.PointerTarget
 import pk.rehnuma.app.screen.ScreenSnapshot
+import pk.rehnuma.app.voice.Line
 
 /** SPEC 5.5 states. */
 enum class SessionState {
@@ -75,12 +76,12 @@ interface SessionUi {
     fun clear()
 
     /** Mirror the state to Flutter (SPEC 10.2). */
-    fun emit(state: SessionState, goalText: String?, step: Int?, captionRoman: String?, error: String?)
+    fun emit(state: SessionState, goalText: String?, step: Int?, caption: String?, error: String?)
 }
 
 interface SessionVoice {
-    /** Speaks [urdu] (captions are handled separately). [onDone] runs when speech ends or fails. */
-    fun speak(urdu: String, roman: String, onDone: () -> Unit = {})
+    /** Speaks [line] in the chosen language (captions are handled separately). [onDone] runs when speech ends or fails. */
+    fun speak(line: Line, onDone: () -> Unit = {})
 
     fun stop()
 }

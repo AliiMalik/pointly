@@ -4,7 +4,7 @@ import '../channel/rehnuma_channel.dart';
 import '../l10n/strings.dart';
 import '../widgets/bilingual.dart';
 
-/// Backend, voice, caption, talk mode, demo mode, learning reset and debug overlay (SPEC 10 item 4).
+/// Language, backend, voice, talk mode, demo mode, learning reset and debug overlay (SPEC 10 item 4).
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -75,24 +75,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _checking = false;
       _checkGood = r['reachable'] == true && r['keyOk'] == true;
-      _checkResult = [msg.ur, msg.en, detail].join('\n');
+      _checkResult = [msg.text, detail].join('\n');
     });
   }
 
   void _toast(Bi text) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${text.ur} · ${text.en}')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text.text)));
   }
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     return Scaffold(
-      appBar: AppBar(title: Text('${S.setTitle.ur} · ${S.setTitle.en}')),
+      appBar: AppBar(title: Text(S.setTitle.text)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                _Choice(
+                  title: S.setLanguage,
+                  value: Lang.code.value,
+                  options: const {Lang.en: S.setEnglish, Lang.ur: S.setUrdu},
+                  onChanged: (v) {
+                    Lang.set(v);
+                    _set('language', v);
+                  },
+                ),
                 _Section(
                   children: [
                     BiText(S.setBaseUrl, size: 18),
@@ -141,12 +151,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _config['voiceOut'] as String? ?? 'device',
                   options: const {'device': S.setDevice, 'cloud': S.setCloud},
                   onChanged: (v) => _set('voiceOut', v),
-                ),
-                _Choice(
-                  title: S.setCaption,
-                  value: _config['caption'] as String? ?? 'roman',
-                  options: const {'roman': S.setRoman, 'urdu': S.setUrdu},
-                  onChanged: (v) => _set('caption', v),
                 ),
                 _Choice(
                   title: S.setTalkMode,
@@ -229,7 +233,7 @@ class _Choice extends StatelessWidget {
           style: const ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(0, 56))),
           segments: [
             for (final e in options.entries)
-              ButtonSegment(value: e.key, label: Text('${e.value.ur}\n${e.value.en}', textAlign: TextAlign.center)),
+              ButtonSegment(value: e.key, label: Text(e.value.text, textAlign: TextAlign.center)),
           ],
           selected: {value},
           onSelectionChanged: (s) => onChanged(s.first),

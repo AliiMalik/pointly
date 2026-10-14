@@ -18,14 +18,14 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import pk.rehnuma.app.config.AppConfig
 import pk.rehnuma.app.voice.Phrase
 import pk.rehnuma.app.voice.QuickTasks
 
 /**
- * Panel opened from the bubble (SPEC 5.8): the five quick tasks and a Roman Urdu text box for noisy
- * rooms. Typing `#12` points at element 12 of the current screen (manual test mode, SPEC 13 Phase 2).
+ * Panel opened from the bubble (SPEC 5.8): the five quick tasks and a text box for noisy rooms. Typing `#12` points at element 12 of the current screen (manual test mode, SPEC 13 Phase 2).
  */
-class QuickPanel(private val context: Context, private val listener: Listener) {
+class QuickPanel(private val context: Context, private val language: () -> String, private val listener: Listener) {
 
     interface Listener {
         fun onGoal(goal: String)
@@ -55,15 +55,18 @@ class QuickPanel(private val context: Context, private val listener: Listener) {
             }
             isClickable = true // keep taps on the card from closing the panel
         }
-        card.addView(text(Phrase.ASK_GOAL.roman, 22f, bold = true))
-        for (goal in QuickTasks.ALL) {
-            card.addView(button(goal, filled = true) {
+        val lang = language()
+        val urdu = lang == AppConfig.LANG_UR
+        card.layoutDirection = if (urdu) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
+        card.addView(text(Phrase.ASK_GOAL.line.pick(lang), 22f, bold = true))
+        for (task in QuickTasks.ALL) {
+            card.addView(button(task.pick(lang), filled = true) {
                 hide()
-                listener.onGoal(goal)
+                listener.onGoal(task.en)
             })
         }
         val input = EditText(context).apply {
-            hint = "Yahan likhein (Roman Urdu)"
+            hint = if (urdu) "یہاں لکھیں" else "Type here"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             imeOptions = EditorInfo.IME_ACTION_GO
@@ -89,13 +92,13 @@ class QuickPanel(private val context: Context, private val listener: Listener) {
         card.addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = (12 * d).toInt()
         })
-        card.addView(button("Chalein", filled = true) { submit() })
+        card.addView(button(if (urdu) "چلیں" else "Go", filled = true) { submit() })
         val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         row.addView(button("Snapshot", filled = false) {
             hide()
             listener.onSnapshot()
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(button("Band karein", filled = false) { hide() }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(button(if (urdu) "بند کریں" else "Close", filled = false) { hide() }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         card.addView(row)
 
         val scroll = ScrollView(context).apply { addView(card) }

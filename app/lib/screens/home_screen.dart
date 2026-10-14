@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (await RehnumaChannel.isServiceEnabled()) return true;
     if (!mounted) return false;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${S.homeServiceOff.ur}\n${S.homeServiceOff.en}')),
+      SnackBar(content: Text(S.homeServiceOff.text)),
     );
     Navigator.of(context).pushNamed(Routes.permissions);
     return false;
@@ -80,10 +80,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _refresh();
   }
 
-  Future<void> _quickTask(QuickTask task) async {
+  Future<void> _quickTask(Bi task) async {
     if (!await _ensureService()) return;
     try {
-      await RehnumaChannel.startQuickTask(task.goal);
+      await RehnumaChannel.startQuickTask(task.en);
     } on PlatformException catch (e) {
       _showError(e);
     }
@@ -97,20 +97,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     final scheme = Theme.of(context).colorScheme;
     final stateLabel = S.stateLabel(_state.state);
     return Scaffold(
       appBar: AppBar(
-        title: Text('${S.appName.ur} · ${S.appName.en}'),
+        title: const Text(S.appName),
         actions: [
           IconButton(
-            tooltip: S.homeMetrics.en,
+            tooltip: S.homeMetrics.text,
             iconSize: 30,
             icon: const Icon(Icons.insights_rounded),
             onPressed: () => Navigator.of(context).pushNamed(Routes.metrics),
           ),
           IconButton(
-            tooltip: S.homeSettings.en,
+            tooltip: S.homeSettings.text,
             iconSize: 30,
             icon: const Icon(Icons.settings_rounded),
             onPressed: () => Navigator.of(context).pushNamed(Routes.settings),
@@ -136,14 +137,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    BiText(Bi('${S.homeState.ur}: ${stateLabel.ur}', '${S.homeState.en}: ${stateLabel.en}')),
+                    BiText(Bi('${S.homeState.en}: ${stateLabel.en}', '${S.homeState.ur}: ${stateLabel.ur}')),
                     if (_state.goalText != null) ...[
                       const SizedBox(height: 8),
                       Text('“${_state.goalText}”', style: const TextStyle(fontSize: 18)),
                     ],
-                    if (_state.captionRoman != null) ...[
+                    if (_state.caption != null) ...[
                       const SizedBox(height: 8),
-                      Text(_state.captionRoman!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      Text(_state.caption!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                     ],
                     if (_state.error != null) ...[
                       const SizedBox(height: 8),
@@ -167,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: BigButton(
-                  label: Bi(task.ur, '${task.goal} · ${task.en}'),
+                  label: task,
                   icon: Icons.play_arrow_rounded,
                   color: Colors.white,
                   foreground: const Color(0xFF111111),

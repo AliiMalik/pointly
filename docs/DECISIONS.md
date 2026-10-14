@@ -119,6 +119,16 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - `/v1/stt` with Gemini works (200 in ~2 s, Urdu script plus Roman). Cloud TTS still needs `GOOGLE_APPLICATION_CREDENTIALS`.
 - The key lives only in `backend/.env` (git-ignored); `.env.example` stays blank.
 
+## English first, Urdu optional; display name Pointly (2026-10-14)
+
+- **Language setting replaces the caption-script setting.** `language` is `en` (default) or `ur`. English means plain English captions, voice and app screens, with no Roman Urdu anywhere. Urdu means Urdu script, right-to-left screens and an Urdu voice. Old installs that chose Urdu script keep Urdu; everyone else moves to English.
+- **The planner returns `say_en` and `say_ur`** (was `say_urdu`/`say_roman`). The validator rejects non-English letters in `say_en` and Roman letters in `say_ur`; `HistoryItem.instruction` is the English sentence. STT returns one `text` field; `/v1/tts` takes `language` (`en-US` / `ur-PK`) and caches per language.
+- **Voice in/out follow the language**: device recognizer `en-US` or `ur-PK`, device TTS English or the Urdu voice when installed, otherwise the cloud with the same language.
+- **Quick tasks send the English goal** in both languages; only the label is translated. The planner understands goals typed or spoken in English, Urdu or Roman Urdu.
+- **"Done, the rest is yours"** is now detected by "yourself" in `say_en` or "خود" in `say_ur` (was "khud").
+- **Name: Pointly**, display only (launcher label, accessibility service label, bubble, notification, app screens). Package, channel names, `X-Rehnuma-Key` and class names stay so the rename can change again without touching APIs.
+- Not re-run on a device after this change (no phone or emulator attached); covered by unit and widget tests (backend 73, Kotlin 107, Flutter 21). The live Gemini eval should be re-run once with the new field names before the final.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_

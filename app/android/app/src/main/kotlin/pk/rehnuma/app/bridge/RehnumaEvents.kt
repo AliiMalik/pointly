@@ -30,14 +30,14 @@ object RehnumaEvents {
         state: String,
         goalText: String? = null,
         step: Int? = null,
-        captionRoman: String? = null,
+        caption: String? = null,
         error: String? = null,
     ) {
         val m = buildMap<String, Any?> {
             put("state", state)
             goalText?.let { put("goalText", it) }
             step?.let { put("step", it) }
-            captionRoman?.let { put("captionRoman", it) }
+            caption?.let { put("caption", it) }
             error?.let { put("error", it) }
         }
         last = m
