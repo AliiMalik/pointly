@@ -1,6 +1,6 @@
 [
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Settings",
     "action": "tap",
     "label": "Display & touch",
@@ -8,7 +8,7 @@
     "say_ur": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں"
   },
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Display & touch",
     "action": "tap",
     "label": "Display size & text",
@@ -16,7 +16,7 @@
     "say_ur": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں"
   },
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Display size & text",
     "action": "done",
     "goal_key": "settings_font_size",
@@ -46,7 +46,7 @@
     "say_ur": "ہوم والا ٹیب دبائیں"
   },
   {
-    "goal": "dhoond",
+    "goal": "search",
     "step": 1,
     "title": "Settings",
     "action": "tap",
@@ -55,7 +55,7 @@
     "say_ur": "اوپر سرچ والی پٹی دبائیں"
   },
   {
-    "goal": "dhoond",
+    "goal": "search",
     "step": 2,
     "action": "type",
     "label": "Search",
@@ -63,7 +63,7 @@
     "say_ur": "یہاں وائی فائی لکھیں"
   },
   {
-    "goal": "dhoond",
+    "goal": "search",
     "step": 3,
     "action": "done",
     "goal_key": "settings_search",

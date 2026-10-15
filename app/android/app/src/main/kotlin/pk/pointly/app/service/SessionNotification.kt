@@ -60,6 +60,7 @@ class SessionNotification(private val context: Context, private val onStop: () -
         )
         val n = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_pointly_small)
+            .setColor(pk.pointly.app.overlay.Palette.brand)
             .setContentTitle(context.getString(R.string.notification_title))
             .setContentText(context.getString(R.string.notification_text))
             .setContentIntent(openPointly)

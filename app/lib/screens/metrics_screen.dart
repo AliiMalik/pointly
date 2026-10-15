@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../channel/pointly_channel.dart';
 import '../l10n/strings.dart';
+import '../theme/pointly_theme.dart';
 import '../widgets/bilingual.dart';
+import '../widgets/ui.dart';
 
 class MetricsScreen extends StatefulWidget {
   const MetricsScreen({super.key});
@@ -36,9 +38,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
     try {
       await PointlyChannel.saveSnapshot();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.metSnapshotHint.text)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.metSnapshotHint.text)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -47,6 +47,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Lang.watch(context);
     final rows = <(Bi, String)>[
       (S.metSessions, _fmt('sessions')),
       (S.metSteps, _fmt('steps')),
@@ -64,41 +65,83 @@ class _MetricsScreenState extends State<MetricsScreen> {
         title: Text(S.metTitle.text),
         actions: [
           IconButton(icon: const Icon(Icons.refresh_rounded), tooltip: S.metRefresh.text, onPressed: _load),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
-          Card(
-            child: Column(
-              children: [
-                for (final (label, value) in rows)
-                  ListTile(
-                    title: BiText(label, size: 18),
-                    trailing: Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
+          BiText(S.metNote, size: 16, bold: false, color: Palette.inkSoft),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, box) {
+              final w = (box.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (var i = 0; i < rows.length; i++)
+                    SizedBox(
+                      width: w,
+                      child: Reveal(
+                        index: i,
+                        child: _Stat(label: rows[i].$1, value: rows[i].$2),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 16),
-          BigButton(
-            label: S.metExport,
-            icon: Icons.ios_share_rounded,
-            onPressed: () => PointlyChannel.exportMetrics(),
-          ),
-          const SizedBox(height: 24),
-          BiText(S.metDebug, size: 20),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          BigButton(label: S.metExport, icon: Icons.ios_share_rounded, onPressed: () => PointlyChannel.exportMetrics()),
+          const SizedBox(height: 28),
+          SectionLabel(S.metDebug),
           BigButton(
             label: S.metSaveSnapshot,
             icon: Icons.save_alt_rounded,
-            color: Colors.white,
-            foreground: const Color(0xFF111111),
+            tone: ButtonTone.secondary,
             onPressed: _snapshot,
           ),
-          const SizedBox(height: 8),
-          BiText(S.metSnapshotHint, size: 16),
+          const SizedBox(height: 10),
+          BiText(S.metSnapshotHint, size: 15, bold: false, color: Palette.inkSoft),
         ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.value});
+
+  final Bi label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = value == '—';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: Lang.isUrdu ? 56 : 44),
+              child: BiText(label, size: 14, bold: false, color: Palette.inkSoft),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.8,
+                color: empty ? Palette.inkFaint : Palette.ink,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

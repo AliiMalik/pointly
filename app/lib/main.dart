@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'channel/pointly_channel.dart';
 import 'l10n/strings.dart';
@@ -7,9 +8,19 @@ import 'screens/metrics_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/permissions_screen.dart';
 import 'screens/settings_screen.dart';
+import 'theme/pointly_theme.dart';
+import 'widgets/marks.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Palette.paper,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
   runApp(const PointlyApp());
 }
 
@@ -24,31 +35,12 @@ class Routes {
 class PointlyApp extends StatelessWidget {
   const PointlyApp({super.key});
 
-  static const green = Color(0xFF0B7A3E);
-
   @override
   Widget build(BuildContext context) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: green,
-      primary: green,
-      onPrimary: Colors.white,
-      surface: Colors.white,
-      onSurface: const Color(0xFF111111),
-    );
     return MaterialApp(
       title: S.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: scheme,
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F7F4),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: green,
-          foregroundColor: Colors.white,
-          titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-        listTileTheme: const ListTileThemeData(minVerticalPadding: 14),
-      ),
+      theme: PointlyTheme.light(),
       builder: (context, child) => ValueListenableBuilder<String>(
         valueListenable: Lang.code,
         builder: (context, _, _) => LangScope(
@@ -99,6 +91,15 @@ class _StartGateState extends State<_StartGate> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.85, end: 1),
+        duration: Motion.of(context, Motion.slow),
+        curve: Motion.spring,
+        builder: (context, v, child) => Transform.scale(scale: v, child: child),
+        child: const PointlyMark(size: 88),
+      ),
+    ),
+  );
 }

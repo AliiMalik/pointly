@@ -82,7 +82,7 @@ class PointlyAccessibilityService : AccessibilityService() {
         debugBoxes = DebugBoxesOverlay(this)
         pointer = PointerOverlay(this)
         bubble = BubbleOverlay(this, bubbleListener)
-        panel = QuickPanel(this, { config.language }, panelListener)
+        panel = QuickPanel(this, { config.language }, { config.debugBoxes }, panelListener)
         planner = PlannerClient({ config })
         speechOut = SpeechOutput(this, { config }, planner, scope)
         speechIn = SpeechInput(this, { config }, planner, scope)

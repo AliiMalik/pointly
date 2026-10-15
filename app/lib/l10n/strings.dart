@@ -50,6 +50,11 @@ class S {
     'You always tap yourself. Each time you repeat a task, Pointly helps a little less.',
     'آپ ہر بار خود دبائیں گے۔ دوسری تیسری بار پوائنٹلی کم مدد کرے گی تاکہ آپ سیکھ جائیں۔',
   );
+  static const onbBack = Bi('Back', 'واپس');
+  static Bi onbStep(int n, int of) => Bi('Step $n of $of', 'قدم $n از $of');
+  static const onbFull = Bi('Full help', 'پوری مدد');
+  static const onbHint = Bi('A short hint', 'چھوٹا اشارہ');
+  static const onbOwn = Bi('On your own', 'خود سے');
   static const next = Bi('Next', 'آگے');
   static const start = Bi('Start', 'شروع کریں');
 
@@ -57,7 +62,21 @@ class S {
   static const permAccessibility = Bi('Turn on the Pointly accessibility service', 'پوائنٹلی سروس آن کریں');
   static const permAccessibilityHelp = Bi(
     'If the switch is greyed out: App info → ⋮ → Allow restricted settings.',
-    'اگر سوئچ بند ہو: App info → ⋮ → Allow restricted settings',
+    'اگر سوئچ آن نہ ہو رہا ہو (ہلکا نظر آئے): App info → ⋮ → Allow restricted settings',
+  );
+  static const permHeader = Bi('Get Pointly ready', 'پوائنٹلی کو تیار کریں');
+  static const permSub = Bi(
+    'Three quick steps. You can change them later in Settings.',
+    'تین آسان قدم۔ بعد میں سیٹنگز میں بدل سکتے ہیں۔',
+  );
+  static const permAccessibilityBody = Bi(
+    'Lets Pointly read the labels on your screen. It never taps for you.',
+    'اس سے پوائنٹلی اسکرین پر لکھی چیزیں پڑھ سکتی ہے۔ یہ آپ کی جگہ کچھ نہیں دباتی۔',
+  );
+  static const permMicrophoneBody = Bi('So you can say what you need.', 'تاکہ آپ بول کر بتا سکیں۔');
+  static const permNotificationsBody = Bi(
+    'Shows a Stop button while Pointly is on.',
+    'جب پوائنٹلی چل رہی ہو تو اسے بند کرنے کا بٹن دکھاتی ہے۔',
   );
   static const permMicrophone = Bi('Microphone', 'مائیک کی اجازت');
   static const permNotifications = Bi('Notifications', 'نوٹیفکیشن کی اجازت');
@@ -68,6 +87,22 @@ class S {
 
   static const homeStart = Bi('Start Pointly', 'پوائنٹلی چالو کریں');
   static const homeStop = Bi('Stop Pointly', 'پوائنٹلی بند کریں');
+  static const homeOnTitle = Bi('Pointly is on', 'پوائنٹلی چل رہی ہے');
+  static const homeOffTitle = Bi('Pointly is off', 'پوائنٹلی بند ہے');
+  static const homeOnBody = Bi(
+    'Hold the green bubble on any screen and speak. Tap it once to pick a task.',
+    'کسی بھی اسکرین پر سبز بلبلہ دبا کر رکھیں اور بولیں۔ کام چننے کے لیے ایک بار دبائیں۔',
+  );
+  static const homeOffBody = Bi(
+    'Start it to bring the helper bubble onto your screen.',
+    'شروع کریں تاکہ مددگار بلبلہ آپ کی اسکرین پر آ جائے۔',
+  );
+  static const homeNow = Bi('Right now', 'اس وقت');
+  static const homeIdleHint = Bi(
+    'Hold the bubble and say what you would like to do.',
+    'بلبلہ دبا کر رکھیں اور بتائیں کیا کرنا ہے۔',
+  );
+  static const homeSetUp = Bi('Set up', 'سیٹ اپ کریں');
   static const homeQuickTasks = Bi('Quick tasks', 'جلدی والے کام');
   static const homeState = Bi('Status', 'حالت');
   static const homeServiceOff = Bi('Turn on the Pointly accessibility service first', 'پہلے پوائنٹلی سروس آن کریں');
@@ -79,6 +114,10 @@ class S {
   static const setLanguage = Bi('Language', 'زبان');
   static const setEnglish = Bi('English', 'English');
   static const setUrdu = Bi('اردو', 'اردو');
+  static const setSectionVoice = Bi('Voice', 'آواز');
+  static const setSectionServer = Bi('Server', 'سرور');
+  static const setSectionHelp = Bi('Help and learning', 'مدد اور سیکھنا');
+  static const setSectionDeveloper = Bi('Developer', 'ڈویلپر');
   static const setBaseUrl = Bi('Backend address', 'سرور کا پتہ');
   static const setAppKey = Bi('App key', 'ایپ کی');
   static const setVoiceIn = Bi('Listening', 'آواز سننا');
@@ -100,6 +139,10 @@ class S {
   static const setSaved = Bi('Saved', 'محفوظ ہو گیا');
 
   static const metTitle = Bi('Metrics', 'پیمائش');
+  static const metNote = Bi(
+    'These numbers stay on this phone. No screen text is saved.',
+    'یہ اعداد صرف اس فون پر رہتے ہیں۔ اسکرین کی کوئی لکھائی محفوظ نہیں ہوتی۔',
+  );
   static const metSessions = Bi('Sessions', 'سیشن');
   static const metSuccessRate = Bi('Success rate', 'کامیابی');
   static const metPlannerMs = Bi('Median planner time (ms)', 'پلانر وقت (درمیانہ)');

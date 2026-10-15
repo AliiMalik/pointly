@@ -91,10 +91,16 @@ void main() {
     );
   });
 
+  void reducedMotion(WidgetTester tester) {
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  }
+
   Future<void> pump(WidgetTester tester, Widget home) async {
     tester.view.physicalSize = const Size(1280, 2856);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
+    reducedMotion(tester);
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) => LangScope(child: child!),
       home: home,
@@ -123,6 +129,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 2856);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.reset);
+      reducedMotion(tester);
       await tester.pumpWidget(const PointlyApp());
       await tester.pumpAndSettle();
       expect(find.byType(OnboardingScreen), findsOneWidget);
@@ -141,6 +148,7 @@ void main() {
       tester.view.physicalSize = const Size(1280, 2856);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.reset);
+      reducedMotion(tester);
       await tester.pumpWidget(const PointlyApp());
       await tester.pumpAndSettle();
       expect(find.byType(PermissionsScreen), findsOneWidget);
@@ -222,6 +230,12 @@ void main() {
       expect(core.calls.where((c) => c.method == 'startQuickTask').length, 5);
     });
 
+    testWidgets('status card is hidden while Pointly is off and idle', (tester) async {
+      await pump(tester, const HomeScreen());
+      expect(find.text('Ready'), findsNothing);
+      expect(find.text(S.homeOffTitle.en), findsOneWidget);
+    });
+
     testWidgets('quick task with the service off goes to permissions', (tester) async {
       core.serviceOn = false;
       await pump(tester, const HomeScreen());
@@ -231,10 +245,11 @@ void main() {
     });
 
     testWidgets('session events update the status card', (tester) async {
+      core.bubbleOn = true;
       final states = StreamController<PointlyState>.broadcast();
       addTearDown(states.close);
       await pump(tester, HomeScreen(states: states.stream));
-      expect(find.text('${S.homeState.en}: Ready'), findsOneWidget);
+      expect(find.text('Ready'), findsOneWidget);
 
       states.add(PointlyState.fromMap({
         'state': 'WAITING_FOR_USER',
@@ -243,13 +258,13 @@ void main() {
         'caption': 'Tap Network & internet',
       }));
       await tester.pumpAndSettle();
-      expect(find.text('${S.homeState.en}: Waiting for you'), findsOneWidget);
+      expect(find.text('Waiting for you'), findsOneWidget);
       expect(find.text('“Turn on WiFi”'), findsOneWidget);
       expect(find.text('Tap Network & internet'), findsOneWidget);
 
       states.add(PointlyState.fromMap({'state': 'ERROR', 'error': 'NETWORK: timeout'}));
       await tester.pumpAndSettle();
-      expect(find.text('${S.homeState.en}: Something went wrong'), findsOneWidget);
+      expect(find.text('Something went wrong'), findsOneWidget);
       expect(find.text('NETWORK: timeout'), findsOneWidget);
     });
   });
@@ -281,6 +296,10 @@ void main() {
 
     testWidgets('check server saves URL and key first, then reports', (tester) async {
       await pump(tester, const SettingsScreen());
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(TextField).at(1));
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'http://192.168.1.10:8000');
       await tester.enterText(find.byType(TextField).at(1), 'demo-key');
       await tapText(tester, S.setCheck.en);

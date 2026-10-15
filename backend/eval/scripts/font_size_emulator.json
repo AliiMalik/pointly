@@ -1,6 +1,6 @@
 [
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Settings",
     "action": "tap",
     "label": "Display & touch",
@@ -8,7 +8,7 @@
     "say_ur": "ڈسپلے اینڈ ٹچ والا آپشن دبائیں"
   },
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Display & touch",
     "action": "tap",
     "label": "Display size & text",
@@ -16,7 +16,7 @@
     "say_ur": "ڈسپلے سائز اینڈ ٹیکسٹ دبائیں"
   },
   {
-    "goal": "likhai",
+    "goal": "bigger",
     "title": "Display size & text",
     "action": "done",
     "goal_key": "settings_font_size",

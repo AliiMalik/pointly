@@ -1,4 +1,5 @@
 import hmac
+import logging
 import os
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
@@ -57,6 +58,8 @@ def create_app(
     settings = settings or get_settings()
     provider = provider or build_provider(settings)
     tts = CachedTts(tts_engine or build_tts(settings), settings.tts_cache_dir, key_extra=f"{settings.tts_model}|{settings.tts_voice}")
+    if settings.pointly_app_key in ("", "change-me"):
+        logging.getLogger("pointly").warning("POINTLY_APP_KEY is not set (or still 'change-me'); set your own key in backend/.env")
     app = FastAPI(title="Pointly backend", version="1.1.0")
     app.state.settings = settings
     app.state.provider = provider

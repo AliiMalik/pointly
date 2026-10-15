@@ -129,6 +129,15 @@ Decisions made while building from `docs/SPEC.md`. Newest phase at the bottom. O
 - **Name: Pointly** everywhere: launcher and service labels, bubble, notification, app screens, and also the code: package `pk.pointly.app`, class names, Dart package, method/event channels (`pointly/control`, `pointly/events`), the `X-Pointly-Key` header and `POINTLY_APP_KEY`. Builds made before the rename used another package id, so an older install shows up as a separate app; uninstall it.
 - Not re-run on a device after this change (no phone or emulator attached); covered by unit and widget tests (backend 73, Kotlin 107, Flutter 21). The live Gemini eval should be re-run once with the new field names before the final.
 
+## Visual design and motion (2026-10-15)
+
+- **One small design system shared by Flutter and the Kotlin overlays** (`app/lib/theme/pointly_theme.dart`, `overlay/Palette.kt`): warm paper background `#F6F4EF`, ink text `#13201B`, evergreen brand `#0E5E43`, and one saffron accent `#F2A93B` reserved for "this is where to tap" (focus frame, hand cuff, mark dot). Cards use a hairline border instead of shadows; one filled primary action per screen.
+- **The Pointly mark** (white ring with a saffron dot on an evergreen disc) is the launcher icon, the splash, the Home hero and the floating bubble, so the bubble the user sees on other apps is recognisably the same thing they started on Home.
+- **Bubble:** drawn on a canvas with a gradient body and soft shadow; spring press/drag/snap; each state has its own glyph and motion (listening ripples + coral body, thinking comet arc, speaking bars, paused lock, error badge); glyphs cross-fade between states.
+- **Pointer:** the hand is one vector silhouette rendered once into a bitmap with a real soft shadow, flown in along a curved path; the focus frame "locks on" with a spring and then breathes; for normal-sized targets a light spotlight (30 % ink) dims the rest of the screen with cut-outs for the target and the bubble. Large targets (a whole list) get no spotlight. The caption is a dark card with a saffron dot that slides in and cross-fades on change.
+- **Reduced motion:** Flutter follows `MediaQuery.disableAnimations` and the overlays follow `ValueAnimator.areAnimatorsEnabled()` (Android's "Remove animations"): loops stop and elements appear in their final state. Widget tests run with reduced motion on.
+- System font (Roboto) is used on purpose: no font download at runtime and nothing extra to bundle; the type scale (32/26/21/18/16) and weights carry the hierarchy.
+
 ## Open questions (SPEC 15), to answer on the demo phone
 
 1. Wallet app for the PIN demo, and whether it exposes labels: _pending_

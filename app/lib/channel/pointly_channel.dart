@@ -2,13 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class PointlyState {
-  const PointlyState({
-    required this.state,
-    this.goalText,
-    this.step,
-    this.caption,
-    this.error,
-  });
+  const PointlyState({required this.state, this.goalText, this.step, this.caption, this.error});
 
   final String state;
   final String? goalText;
@@ -19,20 +13,16 @@ class PointlyState {
   static const idle = PointlyState(state: 'IDLE');
 
   factory PointlyState.fromMap(Map<dynamic, dynamic> m) => PointlyState(
-        state: (m['state'] as String?) ?? 'IDLE',
-        goalText: m['goalText'] as String?,
-        step: m['step'] as int?,
-        caption: m['caption'] as String?,
-        error: m['error'] as String?,
-      );
+    state: (m['state'] as String?) ?? 'IDLE',
+    goalText: m['goalText'] as String?,
+    step: m['step'] as int?,
+    caption: m['caption'] as String?,
+    error: m['error'] as String?,
+  );
 }
 
 class PermissionStatus {
-  const PermissionStatus({
-    required this.accessibility,
-    required this.microphone,
-    required this.notifications,
-  });
+  const PermissionStatus({required this.accessibility, required this.microphone, required this.notifications});
 
   final bool accessibility;
   final bool microphone;
@@ -40,8 +30,7 @@ class PermissionStatus {
 
   bool get allGranted => accessibility && microphone && notifications;
 
-  static const none =
-      PermissionStatus(accessibility: false, microphone: false, notifications: false);
+  static const none = PermissionStatus(accessibility: false, microphone: false, notifications: false);
 }
 
 class PointlyChannel {
@@ -60,11 +49,9 @@ class PointlyChannel {
       .map((e) => PointlyState.fromMap(e as Map<dynamic, dynamic>))
       .asBroadcastStream();
 
-  static Future<bool> isServiceEnabled() async =>
-      (await _control.invokeMethod<bool>('isServiceEnabled')) ?? false;
+  static Future<bool> isServiceEnabled() async => (await _control.invokeMethod<bool>('isServiceEnabled')) ?? false;
 
-  static Future<void> openAccessibilitySettings() =>
-      _control.invokeMethod<void>('openAccessibilitySettings');
+  static Future<void> openAccessibilitySettings() => _control.invokeMethod<void>('openAccessibilitySettings');
 
   static Future<PermissionStatus> getPermissions() async {
     final m = await _control.invokeMapMethod<String, dynamic>('getPermissions');
@@ -83,28 +70,23 @@ class PointlyChannel {
 
   static Future<void> hideBubble() => _control.invokeMethod<void>('hideBubble');
 
-  static Future<bool> isBubbleVisible() async =>
-      (await _control.invokeMethod<bool>('isBubbleVisible')) ?? false;
+  static Future<bool> isBubbleVisible() async => (await _control.invokeMethod<bool>('isBubbleVisible')) ?? false;
 
-  static Future<void> startQuickTask(String goal) =>
-      _control.invokeMethod<void>('startQuickTask', {'goal': goal});
+  static Future<void> startQuickTask(String goal) => _control.invokeMethod<void>('startQuickTask', {'goal': goal});
 
-  static Future<void> setConfig(Map<String, Object?> values) =>
-      _control.invokeMethod<void>('setConfig', values);
+  static Future<void> setConfig(Map<String, Object?> values) => _control.invokeMethod<void>('setConfig', values);
 
   static Future<Map<String, dynamic>> getConfig() async =>
       (await _control.invokeMapMethod<String, dynamic>('getConfig')) ?? <String, dynamic>{};
 
   static Future<Map<String, dynamic>> getMetricsSummary() async =>
-      (await _control.invokeMapMethod<String, dynamic>('getMetricsSummary')) ??
-      <String, dynamic>{};
+      (await _control.invokeMapMethod<String, dynamic>('getMetricsSummary')) ?? <String, dynamic>{};
 
   static Future<String?> exportMetrics() => _control.invokeMethod<String>('exportMetrics');
 
   static Future<void> resetLearning() => _control.invokeMethod<void>('resetLearning');
 
-  static Future<void> setDebugBoxes(bool enabled) =>
-      _control.invokeMethod<void>('setDebugBoxes', {'enabled': enabled});
+  static Future<void> setDebugBoxes(bool enabled) => _control.invokeMethod<void>('setDebugBoxes', {'enabled': enabled});
 
   static Future<void> saveSnapshot({int delayMs = 5000}) =>
       _control.invokeMethod<void>('saveSnapshot', {'delayMs': delayMs});

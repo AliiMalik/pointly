@@ -52,7 +52,7 @@ On the phone:
 1. Open **Pointly**, pick English or اردو on the first page, and go through the three onboarding pages.
 2. Permissions: turn on the Pointly accessibility service. On Android 13+ a side-loaded app may show the setting greyed out: **App info → ⋮ → Allow restricted settings**, then try again. Allow microphone and notifications.
    During development this also works: `adb shell settings put secure enabled_accessibility_services pk.pointly.app/pk.pointly.app.service.PointlyAccessibilityService`
-3. Settings (gear icon): set **Backend base URL** to `http://<laptop-ip>:8000` and the **App key** from `.env`, then tap **Check server**. It must say *Server OK*.
+3. Settings (gear icon): set **Backend address** to `http://<laptop-ip>:8000` and the **App key** from `.env`, then tap **Check server**. It must say *Server OK*.
 4. Home: **Start Pointly**. The bubble appears at the screen edge.
 
 Using it: **hold** the bubble and speak, release to send. A short tap while idle opens the quick-task panel (five tasks, a text box for noisy rooms, Snapshot). During guidance a short tap repeats the instruction, and **×** or the notification's **Stop** stops everything. Settings can switch the language (English / اردو), Tap-to-talk, cloud speech, and **Demo mode** (always full help, use it on stage).
@@ -64,7 +64,7 @@ Kotlin tests: `cd app/android && ./gradlew :app:testDebugUnitTest` (107 tests). 
 | ID | How to check |
 | --- | --- |
 | A1 | Bubble stays over WhatsApp and Settings; taps on the app below still work |
-| A2 | Settings → Debug boxes overlay on WhatsApp chat list, Settings and the wallet app: boxes sit on the real buttons |
+| A2 | Settings → Show debug boxes on WhatsApp chat list, Settings and the wallet app: boxes sit on the real buttons |
 | A3 | From the home screen say "Send a photo to Sara on WhatsApp"; follow it to a sent photo (5 runs) |
 | A4 | Tap something else mid-task: hear "No problem, let's carry on from here" once, guidance continues |
 | A5 | Demo mode **off**, Settings → Reset learning, then run the font-size task 4–5 times: full help, then hint, then silent |
